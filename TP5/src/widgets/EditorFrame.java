@@ -57,6 +57,7 @@ import utils.IconFactory;
 import utils.PaintFactory;
 import widgets.enums.OperationMode;
 import javax.swing.JToggleButton;
+import javax.swing.JTextField;
 
 /**
  * Classe de la fenêtre principale de l'éditeur de figures
@@ -504,6 +505,16 @@ public class EditorFrame extends JFrame
 		LineTypeComboBox.setAlignmentY(Component.CENTER_ALIGNMENT);
 		LineTypeComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 		leftPanel.add(LineTypeComboBox);
+		
+		JSpinner LineWidthspinner = new JSpinner();
+		LineWidthspinner.setModel(
+				new SpinnerNumberModel(
+						defaultEdgeWidth, 
+						minEdgeWidth, 
+						maxEdgeWidth, 
+						stepEdgeWidth));
+		/*TODO Manque le titre pour Line Width*/
+		leftPanel.add("Line Width", LineWidthspinner);
 
 		JPanel edgeWidthPanel = new JPanel();
 		edgeWidthPanel.setPreferredSize(new Dimension(80, 32));
@@ -562,6 +573,22 @@ public class EditorFrame extends JFrame
 		JCheckBoxMenuItem chckbxmntmEdit = new JCheckBoxMenuItem("Edit");
 		chckbxmntmEdit.setAction(toggleCreateEditAction);
 		mnEdition.add(chckbxmntmEdit);
+		
+		JMenuItem mntmUp = new JMenuItem("Up");
+		mntmUp.setAction(moveUpAction);
+		mnEdition.add(mntmUp);
+		
+		JMenuItem mntmDown = new JMenuItem("Down");
+		mntmDown.setAction(moveDownAction);
+		mnEdition.add(mntmDown);
+		
+		JMenuItem mntmDelete = new JMenuItem("Delete");
+		mntmDelete.setAction(deleteAction);
+		mnEdition.add(mntmDelete);
+		
+		JMenuItem mntmStyle = new JMenuItem("Style");
+		mntmStyle.setAction(styleAction);
+		mnEdition.add(mntmStyle);
 
 		JMenu mnFilter = new JMenu("Filter");
 		menuBar.add(mnFilter);
@@ -573,12 +600,48 @@ public class EditorFrame extends JFrame
 
 		JMenu mnFigures = new JMenu("Figures");
 		mnFilter.add(mnFigures);
+		
+		JMenuItem mntmCercle = new JMenuItem("Cercle");
+		mnFigures.add(mntmCercle);
+		
+		JMenuItem mntmEcllipse = new JMenuItem("Ecllipse");
+		mnFigures.add(mntmEcllipse);
+		
+		JMenuItem mntmRectangle = new JMenuItem("Rectangle");
+		mnFigures.add(mntmRectangle);
+		
+		JMenuItem mntmRrectangle = new JMenuItem("rRectangle");
+		mnFigures.add(mntmRrectangle);
+		
+		JMenuItem mntmPoly = new JMenuItem("Poly");
+		mnFigures.add(mntmPoly);
+		
+		JMenuItem mntmNpoly = new JMenuItem("nPoly");
+		mnFigures.add(mntmNpoly);
 
 		JMenu mnColors = new JMenu("Colors");
 		mnFilter.add(mnColors);
+		
+		JMenuItem mntmFillColor = new JMenuItem("Fill Color");
+		mntmFillColor.setAction(fillColorFilterAction);
+		mnColors.add(mntmFillColor);
+		
+		JMenuItem mntmEdgeColor = new JMenuItem("Edge Color");
+		mntmEdgeColor.setAction(edgeColorFilterAction);
+		mnColors.add(mntmEdgeColor);
 
 		JMenu mnStrokes = new JMenu("Strokes");
 		mnFilter.add(mnStrokes);
+		
+		JMenuItem mntmNoneLine = new JMenuItem("None Line");
+		mnStrokes.add(mntmNoneLine);
+		
+		JMenuItem mntmDashedLine = new JMenuItem("Dashed Line");
+		mntmDashedLine.setAction(dashedLineFilterAction);
+		mnStrokes.add(mntmDashedLine);
+		
+		JMenuItem mntmSolidLine = new JMenuItem("Solid Line");
+		mnStrokes.add(mntmSolidLine);
 
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
