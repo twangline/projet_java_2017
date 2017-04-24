@@ -10,8 +10,10 @@ import java.awt.geom.Point2D;
 import javax.swing.JLabel;
 
 import figures.Drawing;
+import figures.Figure;
 import figures.listeners.AbstractFigureListener;
 import figures.listeners.creation.AbstractCreationListener;
+import history.HistoryManager;
 
 /**
  * Listener permettant de transformer une figure
@@ -58,11 +60,14 @@ public abstract class AbstractTransformShapeListener extends AbstractFigureListe
 	 * Constructeur d'un listener à deux étapes: pressed->drag->release pour
 	 * transformer les figures
 	 * @param model le modèle de dessin à modifier par ce Listener
+	 * @param history le gestionnaire d'historique
 	 * @param tipLabel le label dans lequel afficher les conseils utilisateur
 	 */
-	public AbstractTransformShapeListener(Drawing model, JLabel tipLabel)
+	public AbstractTransformShapeListener(Drawing model,
+	                                      HistoryManager<Figure> history,
+	                                      JLabel tipLabel)
 	{
-		super(model, tipLabel, 2);
+		super(model, history, tipLabel, 2);
 
 		tips[0] = new String("Cliquez et maintenez enfoncé pour transformer la figure");
 		tips[1] = new String("Relâchez pour terminer le déplacement");
@@ -103,6 +108,8 @@ public abstract class AbstractTransformShapeListener extends AbstractFigureListe
 	@Override
 	public void startAction(MouseEvent e)
 	{
+		history.record();
+
 		setStartPoint(e);
 
 		currentFigure = drawingModel.getFigureAt(startPoint);
@@ -197,7 +204,7 @@ public abstract class AbstractTransformShapeListener extends AbstractFigureListe
 	{
 		if (e.getButton() == MouseEvent.BUTTON1) // On se fiche du keymask pour terminer l'action
 		{
-			System.out.println("TransformShapeListener ended...");
+			// System.out.println("TransformShapeListener ended...");
 			endAction(e);
 		}
 	}

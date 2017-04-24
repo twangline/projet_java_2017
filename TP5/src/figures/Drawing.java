@@ -3,6 +3,8 @@ package figures;
 import java.awt.BasicStroke;
 import java.awt.Paint;
 import java.awt.geom.Point2D;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.SortedSet;
@@ -13,13 +15,16 @@ import java.util.stream.Stream;
 import figures.enums.FigureType;
 import figures.enums.LineType;
 import filters.FigureFilters;
+import history.Memento;
+import history.Originator;
+import utils.PaintFactory;
 import utils.StrokeFactory;
 
 /**
  * Classe contenant l'ensemble des figures à dessiner (LE MODELE)
  * @author davidroussel
  */
-public class Drawing extends Observable
+public class Drawing extends Observable implements Originator<Figure>
 {
 	/**
 	 * Liste des figures à dessiner (protected pour que les classes du même
@@ -94,27 +99,19 @@ public class Drawing extends Observable
 	 * Filtre à appliquer au flux des figures pour sélectionner les figures
 	 * ayant une couleur particulière de remplissage
 	 */
-	// private FillColorFilter fillColorFilter; // TODO décommenter lorsque prêt
+	// private FillColorFilter<Paint> fillColorFilter; // TODO décommenter lorsque prêt
 
 	/**
 	 * Filtre à appliquer au flux des figures pour sélectionner les figures
 	 * ayant une couleur particulière de trait
 	 */
-	// private EdgeColorFilter edgeColorFilter; // TODO décommenter lorsque prêt
+	// private EdgeColorFilter<Paint> edgeColorFilter; // TODO décommenter lorsque prêt
 
 	/**
 	 * Filtres à applique au flux des figures pour sélectionner les figures
 	 * ayant un type particulier de lignes
 	 */
 	private FigureFilters<LineType> lineFilters;
-
-	/**
-	 * Le status du modèle après une opération (et
-	 * typiquement avant un {@link #update()}).
-	 * Prends ses valeurs en tant que combinaison (bitwise OR)
-	 * des valeurs de {@link Status}
-	 */
-	private int status;
 
 	/**
 	 * Constructeur de modèle de dessin
@@ -136,7 +133,6 @@ public class Drawing extends Observable
 		stroke = StrokeFactory.getStroke(edgeType, edgeWidth);
 		filtering = false;
 		selectedFigure = null;
-		status = Status.NORMAL.value;
 		System.out.println("Drawing model created");
 	}
 
@@ -170,30 +166,7 @@ public class Drawing extends Observable
 	public void update()
 	{
 		setChanged();
-		notifyObservers(status); // pour que les observateurs soient mis à jour
-		status = Status.NORMAL.value;
-	}
-
-	/**
-	 * Création d'un état courant du modèle de dessin
-	 * @return un état courant contenant une copie de l'état du modèle
-	 */
-	public State createState()
-	{
-		// TODO Remplacer par l'implémentation ...
-		return null;
-	}
-
-	/**
-	 * Mise en place d'un état particulier remplaçant l'état courant du modèle
-	 * de dessin
-	 * @param state l'état à mettre en place
-	 * @return true si l'état courant a été correctement remplacé, false sinon
-	 */
-	public boolean setState(State state)
-	{
-		// TODO Remplacer par l'implémentation ...
-		return false;
+		notifyObservers(); // pour que les observateurs soient mis à jour
 	}
 
 	/**
@@ -260,6 +233,7 @@ public class Drawing extends Observable
 		/*
 		 * TODO Il faut regénérer le stroke
 		 */
+		stroke=StrokeFactory.getStroke(null, edgeWidth);
 	}
 
 	/**
@@ -272,45 +246,7 @@ public class Drawing extends Observable
 		/*
 		 * TODO Il faut regénérer le stroke
 		 */
-	}
 
-	/**
-	 * Accesseur en lecture du {@link #status}
-	 * @return le status courant
-	 */
-	public int getStatus()
-	{
-		return status;
-	}
-
-	/**
-	 * Vérifie si un status particulier fait partie
-	 * du status courant
-	 * @param status le status recherché
-	 * @return true si le status recherché fait partie
-	 * du status courant.
-	 */
-	public boolean hasStatus(Status status)
-	{
-		return (this.status & status.value) != 0;
-	}
-
-	/**
-	 * Mutateur du {@link #status}
-	 * @param status la nouvelle valeur du {@link #status}
-	 */
-	public void setStatus(Status status)
-	{
-		this.status = status.value;
-	}
-
-	/**
-	 * Ajout d'un bit de flag de status
-	 * @param status le status à combiner au status courant
-	 */
-	public void addStatus(Status status)
-	{
-		this.status = (this.status | status.value);
 	}
 
 	/**
@@ -323,18 +259,26 @@ public class Drawing extends Observable
 	{
 		/*
 		 * TODO Maintenant que l'on s'apprête effectivement à créer une figure on
-		 * ajoute les Paints et le Stroke aux factories
+		 * ajoute/obtient les Paints et le Stroke des factories
 		 */
-
+		fillPaint = PaintFactory.getPaint(fillPaint);
+		edgePaint = PaintFactory.getPaint(edgePaint);
+		stroke = StrokeFactory.getStroke(edgeType, edgeWidth);
+		
 		/*
 		 * TODO Obtention de la figure correspondant au type de figure choisi grâce à
 		 * type.getFigure(...)
 		 */
-		Figure newFigure = null; // TODO remplacer par type.getType(...)
+		Figure newFigure = type.getFigure(stroke, edgePaint, fillPaint, p); // TODO remplacer par type.getType(...)
 
 		/*
 		 * TODO Ajout de la figure à #figures
 		 */
+		if(newFigure !=null)
+		{
+			figures.add(newFigure);
+			update();
+		}
 
 		/* TODO Notification des observers */
 
@@ -349,7 +293,8 @@ public class Drawing extends Observable
 	public Figure getLastFigure()
 	{
 		// TODO Remplacer par l'implémentation ...
-		return null;
+		return figures.lastElement();
+		
 	}
 
 	/**
@@ -361,7 +306,15 @@ public class Drawing extends Observable
 	public Figure getFigureAt(Point2D p)
 	{
 		selectedFigure = null;
-
+		Iterator<Figure> it=figures.iterator();
+		while(it.hasNext())
+		{
+			Figure f=it.next();
+			if(f.contains(p))
+			{
+				selectedFigure=f;
+			}
+		}
 		/*
 		 * TODO Recherche dans le flux des figures de la DERNIERE figure
 		 * contenant le point p.
@@ -371,12 +324,18 @@ public class Drawing extends Observable
 	}
 
 	/**
-	 * Retrait de la dernière figure (sera déclencé par une action undo)
+	 * Retrait de la dernière figure
 	 * @post le modèle de dessin a été mis à jour
 	 */
 	public void removeLastFigure()
 	{
 		// TODO Compléter ...
+		if(!figures.isEmpty())
+		{
+			figures.remove(figures.size()-1);
+			update();
+		}
+		
 	}
 
 	/**
@@ -386,6 +345,8 @@ public class Drawing extends Observable
 	public void clear()
 	{
 		// TODO Compléter ...
+		figures.clear();
+		update();
 	}
 
 	/**
@@ -405,6 +366,7 @@ public class Drawing extends Observable
 	public void setFiltering(boolean filtering)
 	{
 		// TODO ... filtering ...
+		 filtering=!filtering;//????
 	}
 
 	/**
@@ -442,7 +404,7 @@ public class Drawing extends Observable
 	 * est déclenchée
 	 */
 	// TODO décommenter lorsque prêt
-//	public void setFillColorFilter(FillColorFilter filter)
+//	public void setFillColorFilter(FillColorFilter<Paint> filter)
 //	{
 //		// TODO ... fillColorFilter ...
 //	}
@@ -454,7 +416,7 @@ public class Drawing extends Observable
 	 * est déclenchée
 	 */
 	// TODO décommenter lorsque prêt
-//	public void setEdgeColorFilter(EdgeColorFilter filter)
+//	public void setEdgeColorFilter(EdgeColorFilter<Paint> filter)
 //	{
 //		// TODO ... edgeColorFilter ...
 //	}
@@ -493,17 +455,28 @@ public class Drawing extends Observable
 	public void clearSelection()
 	{
 		// TODO Compléter ...
+		Iterator<Figure> it = figures.iterator();
+		while (it.hasNext()) {
+			it.next().setSelected(false);
+		}
 	}
 
 	/**
 	 * Mise à jour des indices des figures sélectionnées dans {@link #selectionIndex}
 	 * d'après l'interrogation de l'ensembles des figures (après filtrage).
-	 * @note {@link #status} doit être modifié avant l'appel d'
-	 * {@link #updateSelection()}
 	 */
 	public void updateSelection()
 	{
 		// TODO Compléter ...
+		Iterator<Figure> it = figures.iterator();
+		while (it.hasNext()) {
+			Figure f=it.next();
+			if(f.isSelected())
+			{
+				selectionIndex.add(figures.indexOf(f));
+			}
+		}
+		update();
 	}
 
 	/**
@@ -513,7 +486,15 @@ public class Drawing extends Observable
 	public boolean hasSelection()
 	{
 		// TODO Remplacer par l'implémentation
-		return false;
+		Iterator<Figure> it = figures.iterator();
+		while (it.hasNext()) {
+			Figure f=it.next();
+			if(f.isSelected())
+			{
+				return true;
+			}
+		}
+		return false;//����
 	}
 
 	/**
@@ -523,6 +504,16 @@ public class Drawing extends Observable
 	public void deleteSelected()
 	{
 		// TODO Compléter ...
+		Iterator<Figure> it = figures.iterator();
+		while (it.hasNext()) {
+			Figure f=it.next();
+			if(f.isSelected())
+			{
+				figures.removeElementAt(figures.indexOf(f));
+			}
+		}
+		selectionIndex.clear();
+		update();//����
 	}
 
 	/**
@@ -534,7 +525,18 @@ public class Drawing extends Observable
 	public void applyStyleToSelected(Paint fill, Paint edge, BasicStroke stroke)
 	{
 		// TODO Compléter ...
-	}
+		Iterator<Figure> it = figures.iterator();
+		while (it.hasNext()) {
+			Figure f=it.next();
+			if(f.isSelected())
+			{
+				f.setEdgePaint(edge);
+				f.setFillPaint(fill);
+				f.setStroke(stroke);
+			}
+		}
+		update();
+	}//����
 
 	/**
 	 * Déplacement des figures sélectionnées en haut de la liste des figures.
@@ -543,11 +545,26 @@ public class Drawing extends Observable
 	public void moveSelectedUp()
 	{
 		// TODO Compléter ...
-
-
+		Vector<Figure> res=new Vector<Figure> ();
+		Iterator<Integer> it =selectionIndex.iterator();
+		while(it.hasNext())
+		{
+			Integer index=it.next();
+			res.add(figures.get(index));
+		}
+		Iterator<Figure> it2 =figures.iterator();
+		while(it2.hasNext())
+		{
+			Figure f=it2.next();
+			if(!res.contains(f))
+			{
+				res.add(f);
+			}
+		}
+		figures.clear();
+		figures=res;
 
 		// Mise à jour des index des figures sélectionnées & notif observers
-		status = Status.REORDERED.value;
 		updateSelection();
 	}
 
@@ -572,68 +589,37 @@ public class Drawing extends Observable
 		return figuresStream;
 	}
 
-	/**
-	 * Enum contenant différents flags indiquant l'état dans lequel se trouve
-	 * le modèle de dessin après une opération.
-	 * Par exemple, une figure peut avoir été ajoutée, ou enlevée, les figures
-	 * réordonnées etc, etc.
+	/* (non-Javadoc)
+	 * @see history.Originator#createMemento()
 	 */
-	public enum Status
+	@Override
+	public Memento<Figure> createMemento()
 	{
-		/**
-		 * Aucun status particulier
-		 */
-		NORMAL(0),
-		/**
-		 * Une ou plusieurs figures ont été ajoutées
-		 */
-		ADDED(1),
-		/**
-		 * Une ou plusieurs figures ont été enlevées
-		 */
-		REMOVED(2),
-		/**
-		 * Les figures ont été réordonnées
-		 */
-		REORDERED(4);
-
-		/**
-		 * Valeur interne (puissance de 2 pour
-		 * pouvoir l'utiliser dans un bitwise OR)
-		 */
-		public final int value;
-
-		/**
-		 * Constructeur valué
-		 * @param value la valeur de l'enum
-		 */
-		Status(int value)
-		{
-			this.value = value;
-		}
-
-		/**
-		 * Vérifie si une valeur d'enum particulière
-		 * fait partie de flags
-		 * @param flags une combinaison (bitwise OR)
-		 * de valeurs d'enum
-		 * @return
-		 */
-		public boolean isIn(int flags)
-		{
-			return (value & flags) != 0;
-		}
+		return new Memento<Figure>(figures);
 	}
 
-	/**
-	 * Classe permettant de sauvegarder l'état courant du modèle de dessin.
-	 * (Quitte à déplacer des attributs de {@link Drawing} dans cette classe
-	 * si besoin).
-	 * @note On considèrera que l'état courant concerne uniquement les
-	 * figures présentes dans {@link Drawing#figures}
+	/* (non-Javadoc)
+	 * @see history.Originator#setMemento(history.Memento)
 	 */
-	public class State
+	@Override
+	public void setMemento(Memento<Figure> memento)
 	{
-		// TODO Compléter ...
+		if (memento != null)
+		{
+			List<Figure> savedFigures = memento.getState();
+			System.out.println("Drawing::setMemento(" + savedFigures + ")");
+
+			figures.clear();
+			for (Figure elt : savedFigures)
+			{
+				figures.add(elt.clone());
+			}
+
+			update();
+		}
+		else
+		{
+			System.err.println("Drawing::setMemento(null)");
+		}
 	}
 }

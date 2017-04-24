@@ -1,6 +1,3 @@
-/**
- *
- */
 package figures.treemodels;
 
 import java.util.Iterator;
@@ -38,92 +35,134 @@ public class FigureTreeModel extends AbstractFigureTreeModel
 	}
 
 	/**
-	 * Ajout des figures de {@link Drawing} à l'arbre (si elles n'y sont pas
-	 * déjà)
-	 * @param figures les figures à ajouter
-	 * @pre la liste des paths des figures sélectionnées
-	 * ({@link AbstractFigureTreeModel#selectedFigures}) est vide
+	 * Mise à jour des figures de l'arbre en les comparant une par une aux
+	 * figures du modèle de dessin.
+	 * Permet l'enlever/ajouter les figures de l'arbre en fonction des
+	 * modifications observées dans les figures du modèle de dessin.
+	 * @param figures les figures du modèle de dessin
 	 */
 	@Override
-	protected void addFiguresFromDrawing(List<Figure> figures)
+	protected synchronized void updateFiguresFromDrawing(List<Figure> figures)
 	{
-		for (Iterator<Figure> fit = figures.iterator(); fit.hasNext();)
+		/*
+		 * Tant que this.figures n'est pas construit on update pas.
+		 */
+		if (this.figures == null)
 		{
-			Figure figure = fit.next();
-
-			if (figure.isSelected())
-			{
-				TreePath selectedPath = new TreePath(new Object[]{
-					rootElement,
-					figure
-				});
-				selectedFigures.add(selectedPath);
-			}
-
-			if (!this.figures.contains(figure))
-			{
-				this.figures.add(figure);
-
-				TreePath parentPath = new TreePath(new Object[] { rootElement });
-				int[] indexes = new int[] { this.figures.size() - 1 };
-				Object[] nodes = new Object[] { figure };
-				fireTreeNodesInserted(parentPath, indexes, nodes);
-			}
+			return;
 		}
 
-		printTreePathes("FigureTreeModel::addFiguresFromDrawing["
-		    + selectedFigures.size() + "]",
-		                selectedFigures.toArray(new TreePath[0]));
-	}
+		TreePath parentPath = new TreePath(new Object[] { rootElement });
 
-	/**
-	 * Retrait des figures qui ne sont plus dans {@link Drawing} de l'arbre
-	 * @param figures les figures de {@link Drawing}
-	 */
-	@Override
-	protected void removeFiguresFromDrawing(List<Figure> figures)
-	{
+		/*
+		 * Comparaison des figures du tree avec les figures du modèle
+		 * en vue de déterminer
+		 * 	- les noeuds de l'arbre à supprimer : comparaison tree --> model
+		 * 	- les noeuds à ajouter à l'arbre : comparaison model --> tree
+		 */
+		// Comparaison Tree --> Model : noeuds à enlever
+		List<Integer> removeChildIndexList = new Vector<Integer>(this.figures.size());
+		List<Object> removeNodesList = new Vector<Object>(this.figures.size());
+		int nbNodesInitial = this.figures.size();
 		int figureIndex = 0;
-		for (Iterator<Figure> fit = this.figures.iterator(); fit.hasNext();)
+		for (Iterator<Figure> treeIt = this.figures.iterator(); treeIt.hasNext();)
 		{
-			Figure figure = fit.next();
-			if (!figures.contains(figure))
+			Figure figure = treeIt.next();
+			if (figures.indexOf(figure) != figureIndex)
 			{
-				fit.remove();
+				// Cette figure doit être enlevée
+				treeIt.remove();
+				// Index & Object pour la MAJ Listeners
+				removeChildIndexList.add(new Integer(figureIndex));
+				removeNodesList.add(figure);
+			}
+			figureIndex++;
+		}
 
-				// Notify the listeners
-				TreePath parentPath = new TreePath(new Object[] { rootElement });
-				int[] childIndex = new int[] { figureIndex };
-				Object[] nodes = new Object[] { figure };
-				fireNodesRemoved(parentPath, childIndex, nodes);
+		int nbRemoved = removeChildIndexList.size();
+		if (nbRemoved > 0)
+		{
+			int[] removeChildIndex = new int[nbRemoved];
+			for (int i = 0; i < nbRemoved; i++)
+			{
+				removeChildIndex[i] = removeChildIndexList.get(i).intValue();
+			}
+
+			if (nbRemoved < nbNodesInitial)
+			{
+				fireTreeNodesRemoved(parentPath,
+				                     removeChildIndex,
+				                     removeNodesList.toArray());
 			}
 			else
 			{
-				figureIndex++;
+				fireTreeStructureChanged(parentPath);
+			}
+		}
+
+		// Comparaison Model --> Tree : noeuds à ajouter
+		List<Integer> addChildIndexList = new Vector<Integer>(figures.size());
+		List<Object> addNodesList = new Vector<Object>(figures.size());
+		nbNodesInitial = this.figures.size();
+		figureIndex = 0;
+		for (Iterator<Figure> drawIt = figures.iterator(); drawIt.hasNext();)
+		{
+			Figure figure = drawIt.next();
+			if (this.figures.indexOf(figure) != figureIndex)
+			{
+				// Cette figure doit être ajoutée
+				this.figures.add(figureIndex, figure);
+				// Index & Object pour la MAJ Listeners
+				addChildIndexList.add(new Integer(figureIndex));
+				addNodesList.add(figure);
+			}
+			figureIndex++;
+		}
+
+		int nbAdded = addChildIndexList.size();
+		if (nbAdded > 0)
+		{
+			int[] addChildIndex = new int[nbAdded];
+			for (int i = 0; i < nbAdded; i++)
+			{
+				addChildIndex[i] = addChildIndexList.get(i).intValue();
+			}
+
+			if (nbNodesInitial > 0)
+			{
+				fireTreeNodesInserted(parentPath,
+				                      addChildIndex,
+				                      addNodesList.toArray());
+			}
+			else
+			{
+				fireTreeStructureChanged(parentPath);
 			}
 		}
 	}
 
 	/**
-	 * Recherche d'un noeud terminal dans l'arbre
-	 * @param f La figure à rechercher dans l'arbre
-	 * @return le {@link TreePath} de la figure recherchée, qui sera vide
-	 * si la figure recherchée ne fait pas partie de l'arbre
+	 * Mise à jour de {@link #selectedFigures} d'après les figures de l'arbre
+	 * sélectionnées.
 	 */
 	@Override
-	protected TreePath findLeaf(Figure f)
+	protected void updateSelectedFigures()
 	{
-		if (figures.contains(f))
+		if (figures != null)
 		{
-			int index = figures.indexOf(f);
-			return new TreePath(new Object[]{
-				rootElement,
-				figures.get(index)
-			});
-		}
-		else
-		{
-			return new TreePath(new Object[0]);
+			// Mise à jour des figures sélectionnées
+			for (Iterator<Figure> treeIt = figures.iterator(); treeIt.hasNext();)
+			{
+				Figure figure = treeIt.next();
+				if (figure.isSelected())
+				{
+					TreePath selectedPath = new TreePath(new Object[]{
+						rootElement,
+						figure
+					});
+					selectedFigures.add(selectedPath);
+				}
+			}
 		}
 	}
 
@@ -134,22 +173,19 @@ public class FigureTreeModel extends AbstractFigureTreeModel
 	@Override
 	public Object getChild(Object parent, int index)
 	{
-		// System.out.println("getChild(" + parent + ", " + index + ")");
+
 		if (parent == rootElement)
 		{
-			// return figureTypeFromIndex(index);
-			if ((index >= 0) && (index < figures.size()))
+			if (figures != null)
 			{
-				return figures.get(index);
+				if ((index >= 0) && (index < figures.size()))
+				{
+					return figures.get(index);
+				}
 			}
+		}
 
-			return null;
-		}
-		else
-		{
-			// Figures nodes have no children
-			return null;
-		}
+		return null;
 	}
 
 	/*
@@ -161,13 +197,32 @@ public class FigureTreeModel extends AbstractFigureTreeModel
 	{
 		if (parent == rootElement)
 		{
-			return figures.size();
+			if (figures != null)
+			{
+				return figures.size();
+			}
 		}
-		else
+
+		return 0;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see javax.swing.tree.TreeModel#getIndexOfChild(java.lang.Object,
+	 * java.lang.Object)
+	 */
+	@Override
+	public int getIndexOfChild(Object parent, Object child)
+	{
+		if (parent == rootElement)
 		{
-			// Figures nodes have no children
-			return 0;
+			if (figures != null)
+			{
+				return figures.indexOf(child);
+			}
 		}
+
+		return -1;
 	}
 
 	/*
@@ -187,22 +242,6 @@ public class FigureTreeModel extends AbstractFigureTreeModel
 
 	/*
 	 * (non-Javadoc)
-	 * @see javax.swing.tree.TreeModel#getIndexOfChild(java.lang.Object,
-	 * java.lang.Object)
-	 */
-	@Override
-	public int getIndexOfChild(Object parent, Object child)
-	{
-		if (parent == rootElement)
-		{
-			return figures.indexOf(child);
-		}
-
-		return -1;
-	}
-
-	/*
-	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -211,9 +250,13 @@ public class FigureTreeModel extends AbstractFigureTreeModel
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(rootElement + "\n");
-		for (Figure figure : figures)
+
+		if (figures != null)
 		{
-			sb.append("+--").append(figure.toString()).append('\n');
+			for (Figure figure : figures)
+			{
+				sb.append("+--").append(figure.toString()).append('\n');
+			}
 		}
 
 		return sb.toString();

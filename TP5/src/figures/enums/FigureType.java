@@ -12,6 +12,7 @@ import figures.Figure;
 import figures.Rectangle;
 import figures.listeners.creation.AbstractCreationListener;
 import figures.listeners.creation.RectangularShapeCreationListener;
+import history.HistoryManager;
 
 /**
  * Enumeration des différentes figures possibles
@@ -72,12 +73,14 @@ public enum FigureType
 	/**
 	 * Obtention d'un CreationListener adequat pour la valeur de cet enum
 	 * @param model le modèle de dessin à modifier
+	 * @param history le gestionnaire d'historique pour les Undo/Redo
 	 * @param tipLabel le label dans lequel afficher les conseils utilisateur
 	 * @return une nouvelle instance de CreationListener adéquate pour le type
 	 * de figure de cet enum.
 	 * @throws AssertionError si la valeur de cet enum n'est pas prévue
 	 */
 	public AbstractCreationListener getCreationListener(Drawing model,
+	                                                    HistoryManager<Figure> history,
 	                                                    JLabel tipLabel)
 	    throws AssertionError
 	{
@@ -86,15 +89,15 @@ public enum FigureType
 			case CIRCLE:
 			case ELLIPSE:
 			case RECTANGLE:
-				return new RectangularShapeCreationListener(model, tipLabel);
+				return new RectangularShapeCreationListener(model, history, tipLabel);
 			case ROUNDED_RECTANGLE:
-				return null; // TODO new RoundedRectangleCreationListener(model, tipLabel);
+				return null; // TODO new RoundedRectangleCreationListener(model, history, tipLabel);
 			case POLYGON:
-				return null; // TODO new PolygonCreationListener(model, tipLabel);
+				return null; // TODO new PolygonCreationListener(model, history, tipLabel);
 			case NGON:
-				return null; // TODO new NGonCreationListener(model, tipLabel);
+				return null; // TODO new NGonCreationListener(model, history, tipLabel);
 			case STAR:
-				return null; // TODO StarCreationListener(model, tipLabel);
+				return null; // TODO StarCreationListener(model, history, tipLabel);
 		}
 
 		throw new AssertionError("FigureType unknown assertion: " + this);
@@ -174,5 +177,31 @@ public enum FigureType
 			default:
 				return POLYGON;
 		}
+	}
+	/**
+	 * Conversion en entier d'un type de figure
+	 * @return un entier correspondant à l'index du type de figure
+	 */
+	public int intValue() throws AssertionError
+	{
+		switch (this)
+		{
+			case CIRCLE:
+				return 0;
+			case ELLIPSE:
+				return 1;
+			case RECTANGLE:
+				return 2;
+			case ROUNDED_RECTANGLE:
+				return 3;
+			case POLYGON:
+				return 4;
+			case NGON:
+				return 5;
+			case STAR:
+				return 6;
+		}
+
+		throw new AssertionError("FigureType unknown assertion: " + this);
 	}
 }

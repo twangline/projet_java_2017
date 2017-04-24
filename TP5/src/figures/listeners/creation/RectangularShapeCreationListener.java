@@ -6,6 +6,8 @@ import java.awt.event.MouseWheelEvent;
 import javax.swing.JLabel;
 
 import figures.Drawing;
+import figures.Figure;
+import history.HistoryManager;
 
 /**
  * Listener permettant d'enchainer les actions souris pour créer des formes
@@ -23,13 +25,15 @@ public class RectangularShapeCreationListener extends AbstractCreationListener
 	 * Constructeur d'un listener à deux étapes: pressed->drag->release pour
 	 * toutes les figures à caractère rectangulaire (Rectangle, Ellipse, evt
 	 * Cercle)
-	 *
 	 * @param model le modèle de dessin à modifier par ce creationListener
+	 * @param history le gestionnaire d'historique pour les Undo/Redo
 	 * @param tipLabel le label dans lequel afficher les conseils utilisateur
 	 */
-	public RectangularShapeCreationListener(Drawing model, JLabel tipLabel)
+	public RectangularShapeCreationListener(Drawing model,
+	                                        HistoryManager<Figure> history,
+	                                        JLabel tipLabel)
 	{
-		super(model, tipLabel, 2);
+		super(model, history, tipLabel, 2);
 
 		tips[0] = new String("Cliquez et maintenez enfoncé pour initier la figure");
 		tips[1] = new String("Relâchez pour terminer la figure");

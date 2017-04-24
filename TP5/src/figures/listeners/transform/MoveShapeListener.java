@@ -7,6 +7,8 @@ import java.awt.geom.Point2D;
 import javax.swing.JLabel;
 
 import figures.Drawing;
+import figures.Figure;
+import history.HistoryManager;
 
 /**
  * Listener permettant de déplacer une figure
@@ -31,11 +33,14 @@ public class MoveShapeListener extends AbstractTransformShapeListener
 	 * Constructeur d'un listener à deux étapes: pressed->drag->release pour
 	 * déplacer toutes les figures
 	 * @param model le modèle de dessin à modifier par ce Listener
+	 * @param history le gestionnaire d'historique pour les Undo/Redo
 	 * @param tipLabel le label dans lequel afficher les conseils utilisateur
 	 */
-	public MoveShapeListener(Drawing model, JLabel tipLabel)
+	public MoveShapeListener(Drawing model,
+	                         HistoryManager<Figure> history,
+	                         JLabel tipLabel)
 	{
-		super(model, tipLabel);
+		super(model, history, tipLabel);
 	}
 
 	/* (non-Javadoc)
@@ -48,7 +53,7 @@ public class MoveShapeListener extends AbstractTransformShapeListener
 		if (currentFigure != null)
 		{
 			initialTransform = currentFigure.getTranslation();
-			System.out.println("MoveShapeListener2 initialized");
+			// System.out.println("MoveShapeListener2 initialized");
 		}
 		else
 		{

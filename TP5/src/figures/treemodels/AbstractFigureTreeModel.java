@@ -19,9 +19,11 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
 import figures.Drawing;
-import figures.Drawing.Status;
 import figures.Figure;
-
+/**
+ * Classe abstraite de base de tous les arbres composés de figures
+ * @author davidroussel
+ */
 public abstract class AbstractFigureTreeModel implements TreeModel, Observer, TreeSelectionListener
 {
 	/**
@@ -48,8 +50,6 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 
 	/**
 	 * Liste des figures sélectionnées dans l'arbre
-	 * (On considèrera que seule la sélection des figures a un effet, c'àd,
-	 * la sélection du rootNote, ou des autre noeuds parents n'as pas d'effet)
 	 */
 	protected Set<TreePath> selectedFigures;
 
@@ -57,6 +57,12 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * La liste des listeners de ce modèle
 	 */
 	protected Vector<TreeModelListener> treeModelListeners;
+
+	/**
+	 * Indique si un évènement est généré à l'intérieur du TreeModel ou
+	 * bien s'il provient de l'UI
+	 */
+	protected boolean selfEvent;
 
 	/**
 	 * Constructeur de l'arbre des figures
@@ -69,20 +75,36 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	{
 		this.drawing = drawing;
 		treeView = tree;
-		treeView.addTreeSelectionListener(this);
+
 		rootElement = new String(rootName);
 		selectedFigures = new HashSet<TreePath>();
 		treeModelListeners = new Vector<TreeModelListener>();
-		if (drawing != null)
+
+		if (this.drawing != null)
 		{
-			drawing.addObserver(this);
+			this.drawing.addObserver(this);
 		}
 		else
 		{
-			throw new NullPointerException("FigureTypeTreeModel(null drawing)");
+			throw new NullPointerException("AbstractFigureTreeModel(null drawing)");
 		}
+
+		if (treeView != null)
+		{
+			treeView.setModel(this);
+			treeView.addTreeSelectionListener(this);
+		}
+		else
+		{
+			throw new NullPointerException("AbstractFigureTreeModel(null tree)");
+		}
+
+		selfEvent = false;
 	}
 
+	/**
+	 * Nettoyage avant destruction
+	 */
 	@Override
 	protected void finalize() throws Throwable
 	{
@@ -114,35 +136,21 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 				drawing = (Drawing) observable;
 				Stream<Figure> stream = drawing.stream();
 
-				// Rebuild a vector from the stream
+				// Obtention d'une collection de figures à dessiner
 				Vector<Figure> figures = stream.sequential()
 				    .collect(Collectors.toCollection(Vector::new));
 
-				if (drawing.hasStatus(Status.REORDERED))
-				{
-					fireTreeStructureChanged(new TreePath(new Object[]{rootElement}));
-				}
-
-				// Clears currently selected figures
+				// Effacement des chemins des figures sélectionnées
 				selectedFigures.clear();
 
-				/*
-				 * Ajout des figures présentes dans #drawing et
-				 * de leur TreePath dans #selectedFigures si elles sont
-				 * sélectionnées
-				 */
-				addFiguresFromDrawing(figures);
+				// Mise à jour de l'arbre des figures
+				updateFiguresFromDrawing(figures);
 
-				/*
-				 * Mise à jour des figures déjà sélectionnées dans le #treeView
-				 */
+				// Mise à jour des chemins des figures sélectionnées
+				updateSelectedFigures();
+
+				// Mise à jour des figures sélectionnées dans le treeView
 				updateSelectedPath();
-
-				/*
-				 * Remove figures that are no longer in drawings
-				 */
-				removeFiguresFromDrawing(figures);
-				// System.out.println("AbstractFigureTreeModel updated : \n" + this);
 			}
 		}
 		else
@@ -152,21 +160,19 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	}
 
 	/**
-	 * Ajout des figures de {@link Drawing} à l'arbre (si elles n'y sont pas
-	 * déjà) et si les figures sont sélectionnées ajout des paths de sélection
-	 * dans {@link #selectedFigures}
-	 * @param figures les figures à ajouter
-	 * @see Figure#isSelected()
-	 * @pre la liste des paths des figures sélectionnées
-	 * ({@link #selectedFigures}) est vide
+	 * Mise à jour des figures de l'arbre en les comparant une par une aux
+	 * figures du modèle de dessin.
+	 * Permet l'enlever/ajouter les figures de l'arbre en fonction des
+	 * modifications observées dans les figures du modèle de dessin.
+	 * @param figures les figures du modèle de dessin
 	 */
-	protected abstract void addFiguresFromDrawing(List<Figure> figures);
+	protected abstract void updateFiguresFromDrawing(List<Figure> figures);
 
 	/**
-	 * Retrait des figures qui ne sont plus dans {@link Drawing} de l'arbre
-	 * @param figures les figures de {@link Drawing}
+	 * Mise à jour de {@link #selectedFigures} d'après les figures de l'arbre
+	 * sélectionnées.
 	 */
-	protected abstract void removeFiguresFromDrawing(List<Figure> figures);
+	protected abstract void updateSelectedFigures();
 
 	/**
 	 * Mise à jour des noeuds sélectionnés dans le {@link #treeView} d'après
@@ -174,14 +180,16 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 */
 	protected void updateSelectedPath()
 	{
-		System.out.println("AbstractFigureTreeModel::updateSelectedPath");
 		if (treeView != null)
 		{
 			TreeSelectionModel tsm = treeView.getSelectionModel();
 			if (tsm != null)
 			{
 				TreePath[] treePathes = selectedFigures.toArray(new TreePath[0]);
-				printTreePathes("TreeSelectionModel::updateSelectedPathes", treePathes);
+				if(treePathes.length == 0)
+				{
+					treePathes = null; // pour effacer la sélection
+				}
 				tsm.setSelectionPaths(treePathes);
 			}
 			else
@@ -200,7 +208,7 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * Tous les éléments situés en dessous de path sont mis à jour
 	 * @param path le chemin en dessous duquel l'arbre a changé
 	 */
-	protected void fireTreeStructureChanged(TreePath path)
+	protected synchronized void fireTreeStructureChanged(TreePath path)
 	{
 		if (treeModelListeners.size() > 0)
 		{
@@ -212,7 +220,8 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 			TreeModelEvent e = new TreeModelEvent(this, path);
 			for (TreeModelListener tml : treeModelListeners)
 			{
-				System.out.println("FireTreeStructureChanged(" + e + " to " + tml);
+				selfEvent = true;
+//				System.out.println("fireTreeStructureChanged(" + e + " to " + tml);
 				tml.treeStructureChanged(e);
 			}
 		}
@@ -226,7 +235,7 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * @param newNodes an array of the new inserted nodes (Optional)
 	 * @see javax.swing.event.TreeModelListener#treeNodesInserted(TreeModelEvent)
 	 */
-	protected void fireTreeNodesInserted(TreePath path,
+	protected synchronized void fireTreeNodesInserted(TreePath path,
 	                                     int[] newchildIndices,
 	                                     Object[] newNodes)
 	{
@@ -236,6 +245,8 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 			    new TreeModelEvent(this, path, newchildIndices, newNodes);
 			for (TreeModelListener tml : treeModelListeners)
 			{
+				selfEvent = true;
+//				System.out.println("fireTreeNodesInserted(" + e + " to " + tml);
 				tml.treeNodesInserted(e);
 			}
 		}
@@ -250,16 +261,20 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * invoked once for the root of the removed subtree, not once for
 	 * each individual set of siblings removed.
 	 */
-	protected void fireNodesRemoved(TreePath path,
+	protected synchronized void fireTreeNodesRemoved(TreePath path,
 	                                int[] oldChildIndices,
 	                                Object[] oldNodes)
 	{
 		if (treeModelListeners.size() > 0)
 		{
-			TreeModelEvent e =
-			    new TreeModelEvent(this, path, oldChildIndices, oldNodes);
+			TreeModelEvent e = new TreeModelEvent(this,
+			                                      path,
+			                                      oldChildIndices,
+			                                      oldNodes);
 			for (TreeModelListener tml : treeModelListeners)
 			{
+				selfEvent = true;
+//				System.out.println("fireTreeNodesRemoved(" + e + " to " + tml);
 				tml.treeNodesRemoved(e);
 			}
 		}
@@ -270,38 +285,90 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * exemple s'il sont sélectionnés programmatiquement)
 	 * @param treePathes l'ensemble des {@link TreePath} des noeuds changés
 	 */
-	protected void fireNodesChanged(TreePath[] treePathes)
+	protected synchronized void fireNodesChanged(TreePath[] treePathes)
 	{
 		for (int i = 0; i < treePathes.length; i++)
 		{
 			for (TreeModelListener tml : treeModelListeners)
 			{
+				selfEvent = true;
+//				System.out.println("fireNodesChanged(" + treePathes[i] + " to " + tml);
 				tml.treeNodesChanged(new TreeModelEvent(this, treePathes[i]));
 			}
 		}
 	}
 
 	/**
-	 * Recherche d'un noeud terminal dans l'arbre
-	 * @param f La figure à rechercher dans l'arbre
-	 * @return le {@link TreePath} de la figure recherchée, qui sera vide
-	 * si la figure recherchée ne fait pas partie de l'arbre
+	 * Accès au noeud d'index index fils du noeud de parent
+	 * @see javax.swing.tree.TreeModel#getChild(java.lang.Object, int)
+	 * @param parent le noeud parent du noeud recherché
+	 * @param index l'index du noeud enfant recherché
+	 * @return le noeud recherché ou bien null s'il n'existe pas.
 	 */
-	protected abstract TreePath findLeaf(Figure f);
+	@Override
+	public abstract Object getChild(Object parent, int index);
 
+	/**
+	 * Nombre d'enfants d'un noeud
+	 * @param parent le noeud dont on veut connaitre le nombre d'enfants.
+	 * @return le nombre d'enfants du noeud ou bien 0 si ce noeud n'a pas
+	 * d'enfants ou est une feuille de l'arbre.
+	 * @see javax.swing.tree.TreeModel#getChildCount(java.lang.Object)
+	 */
+	@Override
+	public abstract int getChildCount(Object parent);
+
+	/**
+	 * Index d'un enfant particulier à partir d'un noeud parent
+	 * @param parent le noeud parent
+	 * @param child le noeud enfant
+	 * @return l'index du noeud enfant dans le noeud parent. si parent ou
+	 * child sont null, ou si l'un des deux n'est pas un noeud de cet arbre
+	 * renvoie -1.
+	 * @see javax.swing.tree.TreeModel#getIndexOfChild(java.lang.Object,
+	 * java.lang.Object)
+	 */
+	@Override
+	public abstract int getIndexOfChild(Object parent, Object child);
+
+	/**
+	 * Accesseur à la racine de l'arbre
+	 * @return la racine de l'arbre
+	 */
 	@Override
 	public Object getRoot()
 	{
 		return rootElement;
 	}
 
+	/**
+	 * Indique si un noeud est une feuille de l'arbre
+	 * @param node le noeud dont on veut savoir s'il est une feuille
+	 * @return true si le noeud est une feuille de l'arbre, false autrement.
+	 * @see javax.swing.tree.TreeModel#isLeaf(java.lang.Object)
+	 */
+	@Override
+	public abstract boolean isLeaf(Object node);
+
+	/**
+	 * Méthode déclenchée lorsqu'un utilisateur a altéré la valeur d'un item
+	 * identifié par path avec la nouvelle valeur newValue. Si newValue est
+	 * effectivement une nouvelle valeur, alors on doit déclencher un
+	 * treeNodesChanged event [Non utilisé ici]
+	 * @param path le chemin du noeud modifié
+	 * @param newValue la nouvelle valeur du noeud
+	 */
 	@Override
 	public void valueForPathChanged(TreePath path, Object newValue)
 	{
-		System.out
-		    .println("*** valueForPathChanged : " + path + " --> " + newValue);
+		System.out.println("*** valueForPathChanged : " + path + " --> " +
+		                   newValue);
 	}
 
+	/**
+	 * Ajout d'un listener à ce modèle d'abre
+	 * @param l le listener à ajouter
+	 */
 	@Override
 	public void addTreeModelListener(TreeModelListener l)
 	{
@@ -311,6 +378,10 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 		}
 	}
 
+	/**
+	 * Retrait d'n listener à ce modèle d'arbre
+	 * @param l le listener à retirer
+	 */
 	@Override
 	public void removeTreeModelListener(TreeModelListener l)
 	{
@@ -324,6 +395,8 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 	 * Callback déclenché lorsqu'un noeud est sélectionné dans le {@link #treeView}
 	 * @param e l'évènement de sélection dans le {@link JTree}
 	 * @see javax.swing.event.TreeSelectionListener#valueChanged(javax.swing.event.TreeSelectionEvent)
+	 * @note doit être réimplémenté dans les classes filles si l'arbre est plus
+	 * complexe qu'une racine et de figures en dessous.
 	 */
 	@Override
 	public void valueChanged(TreeSelectionEvent e)
@@ -332,36 +405,38 @@ public abstract class AbstractFigureTreeModel implements TreeModel, Observer, Tr
 		int count = tree.getSelectionCount();
 		TreePath[] paths = tree.getSelectionPaths();
 
-		printTreePathes("TreeSelectionListener::valueChanged", paths);
-
-		drawing.clearSelection();
-
-		for (int i = 0; i < count; i++)
+		if (!selfEvent)
 		{
-			// System.out.println("Selection [" + i + "] = " + paths[i]);
-			Object[] objPath =paths[i].getPath();
-			int pathSize = paths[i].getPathCount();
-			Object node = objPath[pathSize - 1];
-			if (node instanceof Figure)
+			drawing.clearSelection();
+
+			for (int i = 0; i < count; i++)
 			{
-				Figure figure = (Figure) node;
-				figure.setSelected(true);
+				Object[] objPath = paths[i].getPath();
+				int pathSize = paths[i].getPathCount();
+				Object node = objPath[pathSize - 1];
+				if (node == rootElement) // select all figures
+				{
+					drawing.stream().forEach((Figure f ) ->
+					{
+						f.setSelected(true);
+					});
+				}
+				if (node instanceof Figure) // Select one figure
+				{
+					Figure figure = (Figure) node;
+					figure.setSelected(true);
+					drawing.stream().forEach((Figure f) ->
+					{
+						if (f.equals(figure))
+						{
+							f.setSelected(true);
+						}
+					});
+				}
 			}
+			drawing.updateSelection();
 		}
 
-		drawing.updateSelection();
-	}
-
-	public void printTreePathes(String message, TreePath[] pathes)
-	{
-		System.out.print(message + " = ");
-		if (pathes != null)
-		{
-			for (int i = 0; i < pathes.length; i++)
-			{
-				System.out.print(pathes[i] + ", ");
-			}
-		}
-		System.out.println();
+		selfEvent = false;
 	}
 }

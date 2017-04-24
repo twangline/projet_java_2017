@@ -9,6 +9,8 @@ import java.awt.event.MouseWheelEvent;
 import javax.swing.JLabel;
 
 import figures.Drawing;
+import figures.Figure;
+import history.HistoryManager;
 
 /**
  * Listener permettant d'ajouter ou de retirer des figures de la liste des
@@ -21,11 +23,14 @@ public class SelectionFigureListener extends AbstractFigureListener
 	/**
 	 * Constructeur
 	 * @param model le modèle de dessin sur lequel on opère
+	 * @param history le gestionnaire d'historique pour les Undo/Redo
 	 * @param infoLabel le label dans lequel afficher les conseils d'utilisation
 	 */
-	public SelectionFigureListener(Drawing model, JLabel infoLabel)
+	public SelectionFigureListener(Drawing model,
+	                               HistoryManager<Figure> history,
+	                               JLabel infoLabel)
 	{
-		super(model, infoLabel, 1);
+		super(model, history, infoLabel, 1);
 
 		tips[0] = new String("Cliquez pour sélectionner/déselectionner une figure");
 		updateTip();

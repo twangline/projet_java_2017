@@ -21,7 +21,6 @@ import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JColorChooser;
@@ -45,6 +44,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import figures.Drawing;
+import figures.Figure;
 import figures.enums.FigureType;
 import figures.enums.LineType;
 import figures.enums.PaintToType;
@@ -53,11 +53,10 @@ import figures.listeners.SelectionFigureListener;
 import figures.listeners.creation.AbstractCreationListener;
 import figures.listeners.transform.AbstractTransformShapeListener;
 import figures.listeners.transform.MoveShapeListener;
+import history.HistoryManager;
 import utils.IconFactory;
 import utils.PaintFactory;
 import widgets.enums.OperationMode;
-import javax.swing.JToggleButton;
-import javax.swing.JTextField;
 
 /**
  * Classe de la fenêtre principale de l'éditeur de figures
@@ -75,6 +74,16 @@ public class EditorFrame extends JFrame
 	 * Le modèle de dessin sous-jacent;
 	 */
 	protected Drawing drawingModel;
+
+	/**
+	 * Le gestionnaire d'historique pour les Undo/Redo
+	 */
+	protected HistoryManager<Figure> history;
+
+	/**
+	 * Taille de l'historique
+	 */
+	protected static final int historyLength = 32;
 
 	/**
 	 * Indique si l'éditeur est en mode Création de figures ou édition
@@ -368,7 +377,7 @@ public class EditorFrame extends JFrame
 	public EditorFrame() throws HeadlessException
 	{
 		drawingModel = new Drawing();
-
+		history = new HistoryManager<Figure>(drawingModel, historyLength);
 		operationMode = OperationMode.CREATION;
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -403,30 +412,6 @@ public class EditorFrame extends JFrame
 		JButton btnRedo = new JButton("Redo");
 		btnRedo.setAction(redoAction);
 		toolBar.add(btnRedo);
-		
-		JButton btnClear = new JButton("Clear");
-		btnClear.setAction(clearAction);
-		toolBar.add(btnClear);
-		
-		JToggleButton tglbtnEdit = new JToggleButton("Edit");
-		tglbtnEdit.setAction(toggleCreateEditAction);
-		toolBar.add(tglbtnEdit);
-		
-		JButton btnUp = new JButton("Up");
-		btnUp.setAction(moveUpAction);
-		toolBar.add(btnUp);
-		
-		JButton btnDown = new JButton("Down");
-		btnDown.setAction(moveDownAction);
-		toolBar.add(btnDown);
-		
-		JButton btnDelete = new JButton("Delete");
-		btnDelete.setAction(deleteAction);
-		toolBar.add(btnDelete);
-		
-		JButton btnStyle = new JButton("Style");
-		btnStyle.setAction(styleAction);
-		toolBar.add(btnStyle);
 
 		Component toolBoxSpringer = Box.createHorizontalGlue();
 		toolBar.add(toolBoxSpringer);
@@ -472,49 +457,6 @@ public class EditorFrame extends JFrame
 		figureTypeCombobox.setPreferredSize(new Dimension(80, 32));
 		leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
 		leftPanel.add(figureTypeCombobox);
-		
-		JLabeledComboBox fillColorComboBox = 
-				new JLabeledComboBox(
-						"Fill Color", 
-						fillColorNames, 
-						0, 
-						new ColorItemListener(
-								fillPaints, 
-								0, 
-								specialFillColorIndex, 
-								PaintToType.FILL));
-		fillColorComboBox.setAlignmentY(Component.CENTER_ALIGNMENT);
-		fillColorComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-		leftPanel.add(fillColorComboBox);
-		
-		JLabeledComboBox EdgeColorComboBox = 
-				new JLabeledComboBox(
-						"Edge Color", 
-						edgeColorNames, 
-						0, 
-						new ColorItemListener(
-								fillPaints, 
-								0, 
-								specialEdgeColorIndex, 
-								PaintToType.EDGE));
-		EdgeColorComboBox.setAlignmentY(Component.CENTER_ALIGNMENT);
-		EdgeColorComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-		leftPanel.add(EdgeColorComboBox);
-		
-		JLabeledComboBox LineTypeComboBox = new JLabeledComboBox("Line Type", new String[] {"Dashed", "Solid", "None"}, 0, (ItemListener) null);
-		LineTypeComboBox.setAlignmentY(Component.CENTER_ALIGNMENT);
-		LineTypeComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-		leftPanel.add(LineTypeComboBox);
-		
-		JSpinner LineWidthspinner = new JSpinner();
-		LineWidthspinner.setModel(
-				new SpinnerNumberModel(
-						defaultEdgeWidth, 
-						minEdgeWidth, 
-						maxEdgeWidth, 
-						stepEdgeWidth));
-		/*TODO Manque le titre pour Line Width*/
-		leftPanel.add("Line Width", LineWidthspinner);
 
 		JPanel edgeWidthPanel = new JPanel();
 		edgeWidthPanel.setPreferredSize(new Dimension(80, 32));
@@ -529,13 +471,12 @@ public class EditorFrame extends JFrame
 
 		JTabbedPane tabbedPane = new JTabbedPane(SwingConstants.TOP);
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+		tabbedPane.setAlignmentY(Component.TOP_ALIGNMENT);
 		leftPanel.add(tabbedPane);
-		
-		TreesPanel treesPanel = new TreesPanel();
-		tabbedPane.addTab("Structure", new ImageIcon(EditorFrame.class.getResource("/images/Tree_small.png")), treesPanel, null);
 
 		InfoPanel infoPanel = new InfoPanel();
-		tabbedPane.addTab("Info", new ImageIcon(EditorFrame.class.getResource("/images/Details_small.png")), infoPanel, "Selected Figure");
+		infoPanel.setAlignmentY(Component.TOP_ALIGNMENT);
+		tabbedPane.addTab("Info", IconFactory.getIcon("Details_small"), infoPanel, "Selected Figure");
 
 		// --------------------------------------------------------------------
 		// Zone de dessin
@@ -569,26 +510,6 @@ public class EditorFrame extends JFrame
 
 		JMenu mnEdition = new JMenu("Edition");
 		menuBar.add(mnEdition);
-		
-		JCheckBoxMenuItem chckbxmntmEdit = new JCheckBoxMenuItem("Edit");
-		chckbxmntmEdit.setAction(toggleCreateEditAction);
-		mnEdition.add(chckbxmntmEdit);
-		
-		JMenuItem mntmUp = new JMenuItem("Up");
-		mntmUp.setAction(moveUpAction);
-		mnEdition.add(mntmUp);
-		
-		JMenuItem mntmDown = new JMenuItem("Down");
-		mntmDown.setAction(moveDownAction);
-		mnEdition.add(mntmDown);
-		
-		JMenuItem mntmDelete = new JMenuItem("Delete");
-		mntmDelete.setAction(deleteAction);
-		mnEdition.add(mntmDelete);
-		
-		JMenuItem mntmStyle = new JMenuItem("Style");
-		mntmStyle.setAction(styleAction);
-		mnEdition.add(mntmStyle);
 
 		JMenu mnFilter = new JMenu("Filter");
 		menuBar.add(mnFilter);
@@ -600,48 +521,12 @@ public class EditorFrame extends JFrame
 
 		JMenu mnFigures = new JMenu("Figures");
 		mnFilter.add(mnFigures);
-		
-		JMenuItem mntmCercle = new JMenuItem("Cercle");
-		mnFigures.add(mntmCercle);
-		
-		JMenuItem mntmEcllipse = new JMenuItem("Ecllipse");
-		mnFigures.add(mntmEcllipse);
-		
-		JMenuItem mntmRectangle = new JMenuItem("Rectangle");
-		mnFigures.add(mntmRectangle);
-		
-		JMenuItem mntmRrectangle = new JMenuItem("rRectangle");
-		mnFigures.add(mntmRrectangle);
-		
-		JMenuItem mntmPoly = new JMenuItem("Poly");
-		mnFigures.add(mntmPoly);
-		
-		JMenuItem mntmNpoly = new JMenuItem("nPoly");
-		mnFigures.add(mntmNpoly);
 
 		JMenu mnColors = new JMenu("Colors");
 		mnFilter.add(mnColors);
-		
-		JMenuItem mntmFillColor = new JMenuItem("Fill Color");
-		mntmFillColor.setAction(fillColorFilterAction);
-		mnColors.add(mntmFillColor);
-		
-		JMenuItem mntmEdgeColor = new JMenuItem("Edge Color");
-		mntmEdgeColor.setAction(edgeColorFilterAction);
-		mnColors.add(mntmEdgeColor);
 
 		JMenu mnStrokes = new JMenu("Strokes");
 		mnFilter.add(mnStrokes);
-		
-		JMenuItem mntmNoneLine = new JMenuItem("None Line");
-		mnStrokes.add(mntmNoneLine);
-		
-		JMenuItem mntmDashedLine = new JMenuItem("Dashed Line");
-		mntmDashedLine.setAction(dashedLineFilterAction);
-		mnStrokes.add(mntmDashedLine);
-		
-		JMenuItem mntmSolidLine = new JMenuItem("Solid Line");
-		mnStrokes.add(mntmSolidLine);
 
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);
@@ -663,10 +548,10 @@ public class EditorFrame extends JFrame
 		// dans WindowBuilder, sélectionnez un widger de l'UI puis Menu
 		// Contextuel -> Add event handler
 		// --------------------------------------------------------------------
-		moveListener = new MoveShapeListener(drawingModel, infoLabel);
-		scaleListener = null; // TODO new ScaleShapeListener(drawingModel, infoLabel);
-		rotateListener = null; // TODO new RotateShapeListener(drawingModel, infoLabel);
-		selectionListener = new SelectionFigureListener(drawingModel, infoLabel);
+		moveListener = new MoveShapeListener(drawingModel, history, infoLabel);
+		scaleListener = null; // TODO new ScaleShapeListener(drawingModel, history, infoLabel);
+		rotateListener = null; // TODO new RotateShapeListener(drawingModel, history, infoLabel);
+		selectionListener = new SelectionFigureListener(drawingModel, history, infoLabel);
 
 		figureTypeCombobox.addItemListener(new ShapeItemListener(FigureType
 		    .fromInteger(figureTypeCombobox.getSelectedIndex())));
@@ -699,7 +584,7 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Quitte l'application
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -745,7 +630,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Mise en place du dernier
+		 * Memento enregistré dans la pile des undo
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -775,6 +661,12 @@ public class EditorFrame extends JFrame
 			putValue(SHORT_DESCRIPTION, "Redo last drawing");
 		}
 
+		/**
+		 * Opérations réalisées par l'action : Mise en place du dernier
+		 * Memento enregistré dans la pile des redo
+		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
+		 * ou d'un item de menu
+		 */
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -805,7 +697,7 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Effacement de toutes les figures
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -843,7 +735,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Affichage d'une boite de dialogue
+		 * Affichant des infos sur l'application
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -919,7 +812,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Changement de mode Création /
+		 * Edition des figures
 		 * @param event l'évènement déclenchant l'action. Peut provenir d'un
 		 * bouton ou d'un item de menu
 		 */
@@ -975,7 +869,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Mise en place ou arrêt du
+		 * filtrage des figures
 		 * @param event l'évènement déclenchant l'action. Peut provenir d'un
 		 * bouton ou d'un item de menu
 		 */
@@ -1015,7 +910,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Ajout ou retrait d'un filtre
+		 * concernant un type particulier de figure ({@link #type})
 		 * @param event l'évènement déclenchant l'action. Peut provenir d'un
 		 * bouton ou d'un item de menu
 		 */
@@ -1054,7 +950,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Ajout ou retrait d'un filtre
+		 * concernant le type de trait des figures
 		 * @param event l'évènement déclenchant l'action. Peut provenir d'un
 		 * bouton ou d'un item de menu
 		 */
@@ -1088,7 +985,9 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Ajout ou retrait du filtre
+		 * de couleur de remplissage en fonction de la couleur de remplissage
+		 * courante.
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -1122,7 +1021,8 @@ public class EditorFrame extends JFrame
 		}
 
 		/**
-		 * Opérations réalisées par l'action
+		 * Opérations réalisées par l'action : Ajout ou retrait d'un filtre
+		 * concernant la couleur de trait d'après la couleur de trait courante.
 		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
 		 * ou d'un item de menu
 		 */
@@ -1151,6 +1051,11 @@ public class EditorFrame extends JFrame
 			putValue(SHORT_DESCRIPTION, "Delete selected figures");
 		}
 
+		/**
+		 * Opérations réalisées par l'action : Retrait des figures sélectionnées.
+		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
+		 * ou d'un item de menu
+		 */
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -1176,6 +1081,12 @@ public class EditorFrame extends JFrame
 			putValue(SHORT_DESCRIPTION, "Move selected figures up");
 		}
 
+		/**
+		 * Opérations réalisées par l'action : Déplacement des figures
+		 * sélectionnées en haut de la liste des figures.
+		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
+		 * ou d'un item de menu
+		 */
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -1201,6 +1112,12 @@ public class EditorFrame extends JFrame
 			putValue(SHORT_DESCRIPTION, "Move selected figures down");
 		}
 
+		/**
+		 * Opérations réalisées par l'action : Déplacement des figures
+		 * sélectionnées en bas de la liste des figures.
+		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
+		 * ou d'un item de menu
+		 */
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -1230,6 +1147,13 @@ public class EditorFrame extends JFrame
 			         "Apply current style to selected figures");
 		}
 
+		/**
+		 * Opérations réalisées par l'action : Application du style courant (
+		 * couleur de remplissage, couleur de trait, type de trait et épaisseur
+		 * du trait) aux figures sélectionnées.
+		 * @param e l'évènement déclenchant l'action. Peut provenir d'un bouton
+		 * ou d'un item de menu
+		 */
 		@Override
 		public void actionPerformed(ActionEvent e)
 		{
@@ -1259,8 +1183,9 @@ public class EditorFrame extends JFrame
 			drawingModel.setFigureType(type);
 
 			// Mise en place du type de creationListener
-			creationListener =
-			    type.getCreationListener(drawingModel, infoLabel);
+			creationListener = type.getCreationListener(drawingModel,
+			                                            history,
+			                                            infoLabel);
 			drawingPanel.addFigureListener(creationListener);
 		}
 
@@ -1278,7 +1203,9 @@ public class EditorFrame extends JFrame
 					// Mise en place d'un nouveau type de figure
 					drawingModel.setFigureType(figureType);
 					AbstractCreationListener newCreationListener =
-					    figureType.getCreationListener(drawingModel, infoLabel);
+					    figureType.getCreationListener(drawingModel,
+					                                   history,
+					                                   infoLabel);
 					if (operationMode == OperationMode.CREATION)
 					{
 						// Mise en place d'un nouveau type de creationListener

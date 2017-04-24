@@ -11,6 +11,8 @@ import java.awt.geom.Rectangle2D;
 
 import figures.enums.FigureType;
 import figures.enums.LineType;
+import history.Prototype;
+import utils.CColor;
 import utils.PaintFactory;
 import utils.StrokeFactory;
 
@@ -19,7 +21,7 @@ import utils.StrokeFactory;
  *
  * @author davidroussel
  */
-public abstract class Figure
+public abstract class Figure implements Prototype<Figure>
 {
 	/**
 	 * La forme à dessiner
@@ -137,6 +139,84 @@ public abstract class Figure
 	 */
 	@Override
 	public abstract Figure clone();
+
+	/**
+	 * Comparaison de deux figures
+	 * @param Object o l'objet à comparer
+	 * @return true si obj est une figure de même type et que son contenu est
+	 * identique
+	 */
+	@Override
+	public boolean equals(Object o)
+	{
+		if (o == null)
+		{
+			return false;
+		}
+
+		if (o == this)
+		{
+			return true;
+		}
+
+		if (getClass() == o.getClass())
+		{
+			Figure f = (Figure) o;
+
+			if (getType().equals(f.getType()))
+			{
+				if (instanceNumber == f.instanceNumber)
+				{
+					// boolean edgeTest = (edge == null ? f.edge == null : edge.equals(f.edge));
+					/*
+					 * Les egde sont fournies par une PaintFactory donc elles sont uniques
+					 */
+					boolean edgeTest = (edge == f.edge);
+					if (edgeTest)
+					{
+						// boolean fillTest = (fill == null ? f.fill == null : fill.equals(f.fill));
+						/*
+						 * Les fill sont fournies par une PaintFactory donc elles sont uniques
+						 */
+						boolean fillTest = (fill == f.fill);
+						if (fillTest)
+						{
+							// boolean strokeTest = (stroke == null ?
+							//                       f.stroke == null :
+							//                      stroke.equals(f.stroke));
+							/*
+							 * Les stroke sont fournies par une StrokeFactory donc elles sont uniques
+							 */
+							boolean strokeTest = (stroke == f.stroke);
+							if (strokeTest)
+							{
+								if (translation.equals(f.translation))
+								{
+									if (rotation.equals(f.rotation))
+									{
+										if (scale.equals(f.scale))
+										{
+											if (getCenter()
+											    .equals(f.getCenter()))
+											{
+												if (getBounds2D()
+												    .equals(f.getBounds2D()))
+												{
+													return true;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return false;
+	}
 
 	/**
 	 * Déplacement du dernier point de la figure (utilisé lors du dessin d'une
@@ -396,6 +476,23 @@ public abstract class Figure
 	}
 
 	/**
+	 * Accesseur en lecture de la couleur comparable du contour
+	 * @return la couleur comparable du contour
+	 */
+	public CColor getEdgeCColor()
+	{
+		if (edge != null)
+		{
+			if (edge instanceof Color)
+			{
+				return new CColor((Color)edge);
+			}
+		}
+
+		return CColor.NoColor;
+	}
+
+	/**
 	 * Mutateur du {@link Paint} du contour
 	 * @param edge le nouveau {@link Paint} à mettre dans {@link #edge}
 	 */
@@ -421,8 +518,25 @@ public abstract class Figure
 	}
 
 	/**
+	 * Accesseur en lecture de la couleur comparable de remplissage
+	 * @return la couleur comparable du remplissage
+	 */
+	public CColor getFillCColor()
+	{
+		if (fill != null)
+		{
+			if (fill instanceof Color)
+			{
+				return new CColor((Color)fill);
+			}
+		}
+
+		return CColor.NoColor;
+	}
+
+	/**
 	 * Mutateur du {@link Paint} du contour
-	 * @param edge le nouveau {@link Paint} à mettre dans {@link #fill}
+	 * @param fill le nouveau {@link Paint} à mettre dans {@link #fill}
 	 */
 	public void setFillPaint(Paint fill)
 	{
@@ -437,6 +551,17 @@ public abstract class Figure
 	}
 
 	/**
+	 * Accesseur en lecture du type de ligne ({@link LineType}) en fonction
+	 * du {@link #stroke}
+	 * @return le type de ligne actuel d'après le {@link #stroke}.
+	 * @see LineType#fromStroke(BasicStroke)
+	 */
+	public LineType getLineType()
+	{
+		return LineType.fromStroke(stroke);
+	}
+
+	/**
 	 * Accesseur en lecture du {@link BasicStroke} du contour
 	 * @return le {@link BasicStroke} du contour
 	 */
@@ -447,7 +572,7 @@ public abstract class Figure
 
 	/**
 	 * Mutateur du {@link BasicStroke} du contour
-	 * @param edge le nouveau {@link BasicStroke} à mettre dans {@link #stroke}
+	 * @param stroke le nouveau {@link BasicStroke} à mettre dans {@link #stroke}
 	 */
 	public void setStroke(BasicStroke stroke)
 	{

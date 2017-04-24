@@ -53,11 +53,18 @@ public class Rectangle extends Figure
 	public Rectangle(Rectangle rect)
 	{
 		super(rect);
-		Rectangle2D oldRectangle = (Rectangle2D) rect.shape;
-		shape = new Rectangle2D.Double(oldRectangle.getMinX(),
-		                               oldRectangle.getMinY(),
-		                               oldRectangle.getWidth(),
-		                               oldRectangle.getHeight());
+		if (rect.getClass() == Rectangle.class)
+		{
+			Rectangle2D oldRectangle = (Rectangle2D) rect.shape;
+			shape = new Rectangle2D.Double(oldRectangle.getMinX(),
+			                               oldRectangle.getMinY(),
+			                               oldRectangle.getWidth(),
+			                               oldRectangle.getHeight());
+		}
+		else
+		{
+			System.out.println("Calling Rectangle(Rectangle) from another class");
+		}
 	}
 
 	/**
@@ -68,6 +75,30 @@ public class Rectangle extends Figure
 	public Figure clone()
 	{
 		return new Rectangle(this);
+	}
+
+	/**
+	 * Comparaison de deux figures
+	 * @param Object o l'objet à comparer
+	 * @return true si obj est une figure de même type et que son contenu est
+	 * identique
+	 */
+	@Override
+	public boolean equals(Object o)
+	{
+		if (super.equals(o))
+		{
+			Rectangle r = (Rectangle) o;
+			RectangularShape r1 = (RectangularShape) shape;
+			RectangularShape r2 = (RectangularShape) r.shape;
+
+			return ((r1.getX() == r2.getX()) &&
+			        (r1.getY() == r2.getY()) &&
+			        (r1.getWidth() == r2.getWidth()) &&
+			        (r1.getHeight() == r2.getHeight()));
+		}
+
+		return false;
 	}
 
 	/**
