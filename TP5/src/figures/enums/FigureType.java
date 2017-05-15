@@ -8,7 +8,9 @@ import java.awt.geom.Point2D;
 import javax.swing.JLabel;
 
 import figures.Drawing;
+import figures.Ellipse;
 import figures.Figure;
+import figures.Polygon;
 import figures.Rectangle;
 import figures.listeners.creation.AbstractCreationListener;
 import figures.listeners.creation.RectangularShapeCreationListener;
@@ -52,7 +54,7 @@ public enum FigureType
 			case CIRCLE:
 				return null; // TODO new Circle(stroke, edge, fill, p, 0.0f);
 			case ELLIPSE:
-				return null; // new Ellipse(stroke, edge, fill, p, p);
+				return new Ellipse(stroke, edge, fill, p, p);
 			case RECTANGLE:
 				return new Rectangle(stroke, edge, fill, p, p);
 			case ROUNDED_RECTANGLE:
@@ -60,7 +62,7 @@ public enum FigureType
 			case POLYGON:
 				Point pp = new Point(Double.valueOf(p.getX()).intValue(),
 				                     Double.valueOf(p.getY()).intValue());
-				return null; // TODO new Polygon(stroke, edge, fill, pp, pp);
+				return new Polygon(stroke, edge, fill, pp, pp);
 			case NGON:
 				return null; // TODO new NGon(stroke, edge, fill, p);
 			case STAR:
@@ -88,6 +90,7 @@ public enum FigureType
 		{
 			case CIRCLE:
 			case ELLIPSE:
+				return new RectangularShapeCreationListener(model, history, tipLabel);
 			case RECTANGLE:
 				return new RectangularShapeCreationListener(model, history, tipLabel);
 			case ROUNDED_RECTANGLE:

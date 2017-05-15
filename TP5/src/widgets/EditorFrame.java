@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.HeadlessException;
 import java.awt.Paint;
 import java.awt.Toolkit;
@@ -36,6 +37,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
+import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
@@ -412,6 +414,30 @@ public class EditorFrame extends JFrame
 		JButton btnRedo = new JButton("Redo");
 		btnRedo.setAction(redoAction);
 		toolBar.add(btnRedo);
+		
+		JButton btnClear = new JButton("Clear"); 
+		btnClear.setAction(clearAction); 
+		toolBar.add(btnClear); 
+		
+		JToggleButton tglbtnEdit = new JToggleButton("Edit"); 
+		tglbtnEdit.setAction(toggleCreateEditAction); 
+		toolBar.add(tglbtnEdit); 
+		
+		JButton btnUp = new JButton("Up"); 
+		btnUp.setAction(moveUpAction); 
+		toolBar.add(btnUp); 
+
+		JButton btnDown = new JButton("Down"); 
+		btnDown.setAction(moveDownAction); 
+		toolBar.add(btnDown); 
+
+		JButton btnDelete = new JButton("Delete"); 
+		btnDelete.setAction(deleteAction); 
+		toolBar.add(btnDelete); 
+		
+		JButton btnStyle = new JButton("Style"); 
+		btnStyle.setAction(styleAction); 
+		toolBar.add(btnStyle); 
 
 		Component toolBoxSpringer = Box.createHorizontalGlue();
 		toolBar.add(toolBoxSpringer);
@@ -457,22 +483,93 @@ public class EditorFrame extends JFrame
 		figureTypeCombobox.setPreferredSize(new Dimension(80, 32));
 		leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
 		leftPanel.add(figureTypeCombobox);
+		
+		JLabeledComboBox fillColorComboBox = 
+				new JLabeledComboBox( 
+						"Fill Color", 
+						fillColorNames, 
+						0,  
+						new ColorItemListener( 
+								fillPaints,  
+								0,  
+								specialFillColorIndex,  
+								PaintToType.FILL)); 
+		fillColorComboBox.setAlignmentY(Component.CENTER_ALIGNMENT); 
+		fillColorComboBox.setAlignmentX(Component.CENTER_ALIGNMENT); 
+		leftPanel.add(fillColorComboBox); 
+		
+		JLabeledComboBox EdgeColorComboBox =
+				new JLabeledComboBox( 
+						"Edge Color",  
+						edgeColorNames, 
+						0,  
+						new ColorItemListener( 
+								edgePaints,  
+								0,  
+								specialEdgeColorIndex,
+								PaintToType.EDGE)); 
+		EdgeColorComboBox.setAlignmentY(Component.CENTER_ALIGNMENT); 
+		EdgeColorComboBox.setAlignmentX(Component.CENTER_ALIGNMENT); 
+		leftPanel.add(EdgeColorComboBox); 
+		
+		//Line type
+		JLabeledComboBox lineTypeComboBox = 
+				new JLabeledComboBox("LineType",
+						new String[] {"None", "Solid", "Dashed"},
+						0, 
+						new EdgeTypeListener(LineType.SOLID));
+		leftPanel.add(lineTypeComboBox);
+		lineTypeComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		//TODO Edge width
 
+		/*
 		JPanel edgeWidthPanel = new JPanel();
-		edgeWidthPanel.setPreferredSize(new Dimension(80, 32));
 		leftPanel.add(edgeWidthPanel);
+		
+		edgeWidthPanel.setLayout(new GridLayout(1, 2, 0, 1));
+		
+		JLabel edgeWidthLabel = new JLabel("Line Width");
+		edgeWidthPanel.add(edgeWidthLabel);
+		
+		JSpinner widthSpinner = new JSpinner();
+		edgeWidthPanel.add(widthSpinner);
+		widthSpinner.setModel(new SpinnerNumberModel(defaultEdgeWidth, minEdgeWidth, maxEdgeWidth, stepEdgeWidth));
+		EdgeWidthListener Ewl=new EdgeWidthListener(defaultEdgeWidth);
+		widthSpinner.addChangeListener(Ewl);
+		*/
+		
+		/*
+		JPanel edgeWidthPanel = new JPanel();
+		leftPanel.add(edgeWidthPanel);
+		edgeWidthPanel.setLayout(new GridLayout(1, 2, 0, 1));
+		
+		JLabel edgeWidthLabel = new JLabel("Egde Width");
+		edgeWidthPanel.add(edgeWidthLabel);
+		*
 		edgeWidthPanel
-		    .setLayout(new BoxLayout(edgeWidthPanel, BoxLayout.X_AXIS));
+		    .setLayout(new BoxLayout(edgeWidthPanel, BoxLayout.X_AXIS));*
 		SpinnerNumberModel snm =
 		    new SpinnerNumberModel(defaultEdgeWidth,
 		                           minEdgeWidth,
 		                           maxEdgeWidth,
 		                           stepEdgeWidth);
+		JSpinner edgeWidthSpinner = new JSpinner();
+		edgeWidthPanel.add(edgeWidthSpinner);
+		edgeWidthSpinner.setModel(snm);
+		EdgeWidthListener Ewl=new EdgeWidthListener(defaultEdgeWidth);
+		edgeWidthSpinner.addChangeListener(Ewl);
+		*EdgeWidthListener ewListener=new EdgeWidthListener(defaultEdgeWidth);
+		edgeWidthSpinner.addChangeListener(ewListener);
+		*/
 
 		JTabbedPane tabbedPane = new JTabbedPane(SwingConstants.TOP);
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		tabbedPane.setAlignmentY(Component.TOP_ALIGNMENT);
 		leftPanel.add(tabbedPane);
+		
+		TreesPanel treesPanel = new TreesPanel(); 
+		tabbedPane.addTab("Structure", IconFactory.getIcon("Tree_small"), treesPanel, null); 
 
 		InfoPanel infoPanel = new InfoPanel();
 		infoPanel.setAlignmentY(Component.TOP_ALIGNMENT);
@@ -510,6 +607,26 @@ public class EditorFrame extends JFrame
 
 		JMenu mnEdition = new JMenu("Edition");
 		menuBar.add(mnEdition);
+		
+		JCheckBoxMenuItem chckbxmntmEdit = new JCheckBoxMenuItem("Edit"); 
+		chckbxmntmEdit.setAction(toggleCreateEditAction); 
+		mnEdition.add(chckbxmntmEdit); 
+
+		JMenuItem mntmUp = new JMenuItem("Up"); 
+		mntmUp.setAction(moveUpAction); 
+		mnEdition.add(mntmUp); 
+
+		JMenuItem mntmDown = new JMenuItem("Down"); 
+		mntmDown.setAction(moveDownAction); 
+		mnEdition.add(mntmDown); 
+
+		JMenuItem mntmDelete = new JMenuItem("Delete"); 
+		mntmDelete.setAction(deleteAction); 
+		mnEdition.add(mntmDelete); 
+
+		JMenuItem mntmStyle = new JMenuItem("Style"); 
+		mntmStyle.setAction(styleAction); 
+		mnEdition.add(mntmStyle); 
 
 		JMenu mnFilter = new JMenu("Filter");
 		menuBar.add(mnFilter);
@@ -522,11 +639,47 @@ public class EditorFrame extends JFrame
 		JMenu mnFigures = new JMenu("Figures");
 		mnFilter.add(mnFigures);
 
+		JMenuItem mntmCercle = new JMenuItem("Cercle"); 
+		mnFigures.add(mntmCercle); 
+		
+		JMenuItem mntmEcllipse = new JMenuItem("Ecllipse"); 
+		mnFigures.add(mntmEcllipse); 
+		
+		JMenuItem mntmRectangle = new JMenuItem("Rectangle"); 
+		mnFigures.add(mntmRectangle); 
+
+		JMenuItem mntmRrectangle = new JMenuItem("rRectangle"); 
+		mnFigures.add(mntmRrectangle); 
+
+		JMenuItem mntmPoly = new JMenuItem("Poly"); 
+		mnFigures.add(mntmPoly); 
+
+		JMenuItem mntmNpoly = new JMenuItem("nPoly"); 
+		mnFigures.add(mntmNpoly); 
+		
 		JMenu mnColors = new JMenu("Colors");
 		mnFilter.add(mnColors);
+		
+		JMenuItem mntmFillColor = new JMenuItem("Fill Color"); 
+		mntmFillColor.setAction(fillColorFilterAction); 
+		mnColors.add(mntmFillColor); 
+
+		JMenuItem mntmEdgeColor = new JMenuItem("Edge Color"); 
+		mntmEdgeColor.setAction(edgeColorFilterAction); 
+		mnColors.add(mntmEdgeColor); 
 
 		JMenu mnStrokes = new JMenu("Strokes");
 		mnFilter.add(mnStrokes);
+		
+		JMenuItem mntmNoneLine = new JMenuItem("None Line"); 
+		mnStrokes.add(mntmNoneLine); 
+
+		JMenuItem mntmDashedLine = new JMenuItem("Dashed Line"); 
+		mntmDashedLine.setAction(dashedLineFilterAction); 
+		mnStrokes.add(mntmDashedLine); 
+		
+		JMenuItem mntmSolidLine = new JMenuItem("Solid Line"); 
+		mnStrokes.add(mntmSolidLine); 
 
 		JSeparator separator = new JSeparator();
 		mnFile.add(separator);

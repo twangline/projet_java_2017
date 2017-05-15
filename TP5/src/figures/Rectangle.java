@@ -21,6 +21,7 @@ public class Rectangle extends Figure
 	 */
 	private static int counter = 0;
 
+	
 	/**
 	 * Création d'un rectangle avec les points en haut à gauche et en bas à
 	 * droite
