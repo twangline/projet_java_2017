@@ -7,13 +7,17 @@ import java.awt.geom.Point2D;
 
 import javax.swing.JLabel;
 
+import figures.Cercle;
 import figures.Drawing;
 import figures.Ellipse;
 import figures.Figure;
 import figures.Polygon;
 import figures.Rectangle;
+import figures.RoundedRectangle;
 import figures.listeners.creation.AbstractCreationListener;
+import figures.listeners.creation.PolygonCreationListener;
 import figures.listeners.creation.RectangularShapeCreationListener;
+import figures.listeners.creation.RoundedRectangleCreationListener;
 import history.HistoryManager;
 
 /**
@@ -52,16 +56,17 @@ public enum FigureType
 		switch (this)
 		{
 			case CIRCLE:
-				return null; // TODO new Circle(stroke, edge, fill, p, 0.0f);
+				return new Cercle(stroke, edge, fill, p, 0.0f); // TODO new Circle(stroke, edge, fill, p, 0.0f);
+				
 			case ELLIPSE:
-				return new Ellipse(stroke, edge, fill, p, p);
+				 return new Ellipse(stroke, edge, fill, p, p);
 			case RECTANGLE:
 				return new Rectangle(stroke, edge, fill, p, p);
 			case ROUNDED_RECTANGLE:
-				return null; // TODO new RoundedRectangle(stroke, edge, fill, p, p, 0);
+				return new RoundedRectangle(stroke, edge, fill, p, p, 0);
 			case POLYGON:
 				Point pp = new Point(Double.valueOf(p.getX()).intValue(),
-				                     Double.valueOf(p.getY()).intValue());
+				                    Double.valueOf(p.getY()).intValue());
 				return new Polygon(stroke, edge, fill, pp, pp);
 			case NGON:
 				return null; // TODO new NGon(stroke, edge, fill, p);
@@ -90,13 +95,12 @@ public enum FigureType
 		{
 			case CIRCLE:
 			case ELLIPSE:
-				return new RectangularShapeCreationListener(model, history, tipLabel);
 			case RECTANGLE:
 				return new RectangularShapeCreationListener(model, history, tipLabel);
 			case ROUNDED_RECTANGLE:
-				return null; // TODO new RoundedRectangleCreationListener(model, history, tipLabel);
+				return new RoundedRectangleCreationListener(model, history, tipLabel);
 			case POLYGON:
-				return null; // TODO new PolygonCreationListener(model, history, tipLabel);
+				return new PolygonCreationListener(model, history, tipLabel);
 			case NGON:
 				return null; // TODO new NGonCreationListener(model, history, tipLabel);
 			case STAR:

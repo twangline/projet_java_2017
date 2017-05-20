@@ -6,7 +6,6 @@ package figures;
 import java.awt.BasicStroke;
 import java.awt.Paint;
 import java.awt.Point;
-import java.awt.Polygon;
 import java.awt.geom.Point2D;
 import java.awt.geom.RectangularShape;
 
@@ -27,15 +26,16 @@ public class Polygon extends Figure {
 	private static int counter = 0;
 	
 	/**
+	 * Création d'un poygon avec 2 points au début
+	 *
 	 * @param stroke le type de trait
 	 * @param edge la couleur du trait
 	 * @param fill la couleur de remplissage
-	 * @param p1
-	 * @param p2
+	 * @param p1 premier point
+	 * @param p2 deuxième point
 	 */
 	public Polygon(BasicStroke stroke, Paint edge, Paint fill, Point p1, Point p2) {
 		super(stroke, edge, fill);
-		// Auto-generated constructor stub
 		instanceNumber = ++counter;
 		java.awt.Polygon poly = new java.awt.Polygon();
 		poly.addPoint(p1.x, p1.y);
@@ -43,17 +43,6 @@ public class Polygon extends Figure {
 		shape = poly;
 	}
 	
-	/**
-	 * @param stroke
-	 * @param edge
-	 * @param fill
-	 */
-	public Polygon(BasicStroke stroke, Paint edge, Paint fill) {
-		super(stroke, edge, fill);
-		// Auto-generated constructor stub
-		shape = null;
-	}
-
 	/**
 	 * Constructeur de copie assurant une copie distincte du rectangle
 	 * @param poly le polygone à copier
@@ -76,12 +65,16 @@ public class Polygon extends Figure {
 
 	}
 
+	
+	/**
+	 * Création d'une copie distincte de la figure
+	 * @see figures.Figure#clone()
+	 */
 	/* (non-Javadoc)
 	 * @see figures.Figure#clone()
 	 */
 	@Override
 	public Figure clone() {
-		// Auto-generated method stub
 		return new Polygon(this);
 	}
 	
@@ -94,33 +87,7 @@ public class Polygon extends Figure {
 	@Override
 	public boolean equals(Object o)
 	{
-		// TODO
-		if (super.equals(o))
-		{
-			Polygon poly = (Polygon) o;
-			
-			java.awt.Polygon p1 = (java.awt.Polygon) shape;
-			java.awt.Polygon p2 = (java.awt.Polygon) poly.shape;
-			
-			int nPoints1 = p1.npoints;
-			int nPoints2 = p2.npoints;
-			
-			if (nPoints1 == nPoints2)
-			{
-				for (int i = 0; i < nPoints; i++)
-				{
-					p1.xpoints[i] == p2.xpoints[i];
-					p1.xpoints[i] == p2.ypoints[i];
-				}
-			}
-
-			
-			return ((p1.getScaleX() == p2.getScaleX()) &&
-			        (p1.getScaleY() == p2.getScaleY()) &&
-			        (p1.getWidth() == p2.getWidth()) &&
-			        (p1.getHeight() == p2.getHeight()));
-		}
-
+		//TODO
 		return false;
 	}
 	
@@ -150,6 +117,34 @@ public class Polygon extends Figure {
 			System.err.println(getClass().getSimpleName() + "::setLastPoint : null shape");
 		}
 	}
+	
+	public void deleteLastPoint() {
+		if (shape != null)
+		{
+			java.awt.Polygon poly = (java.awt.Polygon) shape;
+			if (poly.npoints > 1)
+			{
+				int x [] = new int[poly.npoints-1];
+				int y [] = new int[poly.npoints-1];
+				for (int i = 0; i < poly.npoints-1; i++)
+				{
+					x[i] = poly.xpoints[i];
+					y[i] = poly.ypoints[i];
+				}
+				
+				poly.reset();
+				
+				for (int i = 0; i < poly.npoints-1; i++)
+				{
+					poly.addPoint(x[i], y[i]);
+				}
+			}
+		}
+		else 
+		{
+			System.err.println(getClass().getSimpleName() + "::deleteLastPoint : null shape");
+		}
+	}
 
 	/**
 	 * Normalise une figure de manière à exprimer tous ses points par rapport
@@ -159,10 +154,7 @@ public class Polygon extends Figure {
 	@Override
 	public void normalize() {
 		// TODO Auto-generated method stub
-		Point2D center = getCenter();
-		double cx = center.getX();
-		double cy = center.getY();
-		 rectangle = (RectangularShape) shape;
+		
 	}
 
 	/* (non-Javadoc)
@@ -189,5 +181,18 @@ public class Polygon extends Figure {
 	{
 		return FigureType.POLYGON;
 	}
+
+	/**
+	 * Ajout d'un point au polygone
+	 * @param x l'abcisse du point à ajouter
+	 * @param y l'ordonnée du point à ajouter
+	 */
+	public void addPoint(int x, int y) {
+		java.awt.Polygon poly = (java.awt.Polygon) shape;
+		poly.addPoint(x, y);
+		
+	}
+	
+
 
 }

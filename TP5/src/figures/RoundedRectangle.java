@@ -34,13 +34,12 @@ public class RoundedRectangle extends Figure {
 		double w = (bottomRight.getX() - x);
 		double h = (bottomRight.getY() - y);
 		
-		shape = new RoundRectangle2D.Double(x, y, w, h, arc, arc);
+		/*TODO changer */
+		double minDim = (w < h ? w : h) / 2.0f;
+		double actualArcSize = (arc< minDim ? arc : minDim);
+		shape = new RoundRectangle2D.Double(x, y, w, h, actualArcSize,actualArcSize);
+		System.out.println("Rounded Rectangle created");
 	}
-	public RoundedRectangle(BasicStroke stroke, Paint edge, Paint fill) {
-		super(stroke, edge, fill);
-		// TODO Auto-generated constructor stub
-	}
-	
 
 	public RoundedRectangle(RoundedRectangle f) 
 	{
@@ -74,8 +73,18 @@ public class RoundedRectangle extends Figure {
 
 	@Override
 	public void setLastPoint(Point2D p) {
-		// TODO Auto-generated method stub
-
+		if (shape != null)
+		{
+			RoundRectangle2D.Double rect = (RoundRectangle2D.Double) shape;
+			double newWidth = p.getX() - rect.x;
+			double newHeight = p.getY() - rect.y;
+			rect.width = newWidth;
+			rect.height = newHeight;
+		}
+		else
+		{
+			System.err.println(getClass().getSimpleName() + "::setLastPoint : null shape");
+		}
 	}
 
 	/**
@@ -85,8 +94,15 @@ public class RoundedRectangle extends Figure {
 	 */
 	@Override
 	public void normalize() {
-		// TODO Auto-generated method stub
-
+		Point2D center = getCenter();
+		double cx = center.getX();
+		double cy = center.getY();
+		RoundRectangle2D rectangle = (RoundRectangle2D) shape;
+		translation.translate(cx, cy);
+		rectangle.setFrame(rectangle.getX() - cx,
+		                   rectangle.getY() - cy,
+		                   rectangle.getWidth(),
+		                   rectangle.getHeight());
 	}
 
 	/**
@@ -95,8 +111,57 @@ public class RoundedRectangle extends Figure {
 	 */
 	@Override
 	public Point2D getCenter() {
-		// TODO Auto-generated method stub
-		return null;
+		RoundRectangle2D rect = (RoundRectangle2D) shape;
+
+		Point2D center = new Point2D.Double(rect.getCenterX(), rect.getCenterY());
+		Point2D tCenter = new Point2D.Double();
+		getTransform().transform(center, tCenter);
+
+		return tCenter;
+	}
+	
+	/**
+	 * Mise en place de la taille de l'arc en focntion de la position
+	 * d'un point par rapport au coin inférieur droit
+	 * @param p le point déterminant la taille de l'arc
+	 */
+	
+	/*TODO changer le code*/
+	public void setArc(Point2D p)
+	{
+		RoundRectangle2D.Double rect = (RoundRectangle2D.Double)shape;
+
+		double bottomRightX = rect.getMaxX();
+		double bottomRightY = rect.getMaxY();
+		double x = p.getX();
+		double y = p.getY();
+
+		if (x > bottomRightX)
+		{
+			if (y < bottomRightY)
+			{
+				rect.arcwidth = bottomRightY - y;
+				rect.archeight = rect.arcwidth;
+			}
+			else
+			{
+				rect.arcwidth = 0;
+				rect.archeight = 0;
+			}
+		}
+		else
+		{
+			if (y > bottomRightY)
+			{
+				rect.arcwidth = bottomRightX - x;
+				rect.archeight = rect.arcwidth;
+			}
+			else
+			{
+				rect.arcwidth = 0;
+				rect.archeight = 0;
+			}
+		}
 	}
 
 	/**
@@ -105,7 +170,6 @@ public class RoundedRectangle extends Figure {
  	 */
 	@Override
 	public FigureType getType() {
-		// TODO Auto-generated method stub
 		return FigureType.ROUNDED_RECTANGLE;
 	}
 

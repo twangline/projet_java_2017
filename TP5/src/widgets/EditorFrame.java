@@ -15,6 +15,7 @@ import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.EventObject;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.AbstractAction;
@@ -22,6 +23,7 @@ import javax.swing.AbstractButton;
 import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JColorChooser;
@@ -239,7 +241,7 @@ public class EditorFrame extends JFrame
 	private final Action quitAction = new QuitAction();
 
 	/**
-	 * Action déclenchée lorsque l'on clique sur le bouton undo ou sur l'item
+	 * Action déclenchée lorsque l'on clique sur le bouton  ou sur l'item
 	 * de menu undo
 	 */
 	private final Action undoAction = new UndoAction();
@@ -521,25 +523,57 @@ public class EditorFrame extends JFrame
 		leftPanel.add(lineTypeComboBox);
 		lineTypeComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 		
-		//TODO Edge width
+		//line width
+		JPanel linepanel = new JPanel();
+		leftPanel.add(linepanel);
+		linepanel.setLayout(new GridLayout(1, 2, 0, 1));
+		
+		JLabel linewidthLabel = new JLabel("Line Width");
+		linepanel.add(linewidthLabel);
+		
+		JSpinner spinner = new JSpinner();
+		linepanel.add(spinner);
+		spinner.setModel(new SpinnerNumberModel(defaultEdgeWidth, minEdgeWidth, maxEdgeWidth, stepEdgeWidth));
+		EdgeWidthListener EWL=new EdgeWidthListener(defaultEdgeWidth);
+		spinner.addChangeListener(EWL);
 
-		/*
+		// edgewidth
 		JPanel edgeWidthPanel = new JPanel();
+		edgeWidthPanel.setPreferredSize(new Dimension(80, 32));
 		leftPanel.add(edgeWidthPanel);
+		edgeWidthPanel
+		    .setLayout(new BoxLayout(edgeWidthPanel, BoxLayout.X_AXIS));
+		SpinnerNumberModel snm =
+		    new SpinnerNumberModel(defaultEdgeWidth,
+		                           minEdgeWidth,
+		                           maxEdgeWidth,
+		                           stepEdgeWidth);
+
+		JTabbedPane tabbedPane = new JTabbedPane(SwingConstants.TOP);
+		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+		tabbedPane.setAlignmentY(Component.TOP_ALIGNMENT);
+		leftPanel.add(tabbedPane);
 		
-		edgeWidthPanel.setLayout(new GridLayout(1, 2, 0, 1));
+		TreesPanel treesPanel = new TreesPanel();
+		treesPanel.setAlignmentY(Component.TOP_ALIGNMENT);
+		tabbedPane.addTab("Structure", new ImageIcon(EditorFrame.class.getResource("/images/Tree_small.png")), treesPanel, null);
+        treesPanel.setDrawing(drawingModel);
 		
-		JLabel edgeWidthLabel = new JLabel("Line Width");
-		edgeWidthPanel.add(edgeWidthLabel);
-		
-		JSpinner widthSpinner = new JSpinner();
-		edgeWidthPanel.add(widthSpinner);
-		widthSpinner.setModel(new SpinnerNumberModel(defaultEdgeWidth, minEdgeWidth, maxEdgeWidth, stepEdgeWidth));
-		EdgeWidthListener Ewl=new EdgeWidthListener(defaultEdgeWidth);
-		widthSpinner.addChangeListener(Ewl);
+		InfoPanel infoPanel = new InfoPanel();
+		infoPanel.setAlignmentY(Component.TOP_ALIGNMENT);
+		tabbedPane.addTab("Info", IconFactory.getIcon("Details_small"), infoPanel, "Selected Figure");
+ 
+	/*	JSpinner LineWidthspinner = new JSpinner(); 
+		LineWidthspinner.setModel( 
+				new SpinnerNumberModel( 
+						defaultEdgeWidth,
+						minEdgeWidth,  
+						maxEdgeWidth,  
+						stepEdgeWidth)); 
 		*/
-		
-		/*
+		/*TODO Manque le titre pour Line Width*/ 
+		/*leftPanel.add("Line Width", LineWidthspinner);
+
 		JPanel edgeWidthPanel = new JPanel();
 		leftPanel.add(edgeWidthPanel);
 		edgeWidthPanel.setLayout(new GridLayout(1, 2, 0, 1));
@@ -561,7 +595,7 @@ public class EditorFrame extends JFrame
 		edgeWidthSpinner.addChangeListener(Ewl);
 		*EdgeWidthListener ewListener=new EdgeWidthListener(defaultEdgeWidth);
 		edgeWidthSpinner.addChangeListener(ewListener);
-		*/
+	
 
 		JTabbedPane tabbedPane = new JTabbedPane(SwingConstants.TOP);
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -574,7 +608,7 @@ public class EditorFrame extends JFrame
 		InfoPanel infoPanel = new InfoPanel();
 		infoPanel.setAlignmentY(Component.TOP_ALIGNMENT);
 		tabbedPane.addTab("Info", IconFactory.getIcon("Details_small"), infoPanel, "Selected Figure");
-
+*/
 		// --------------------------------------------------------------------
 		// Zone de dessin
 		// --------------------------------------------------------------------
@@ -792,6 +826,9 @@ public class EditorFrame extends JFrame
 		public void actionPerformed(ActionEvent e)
 		{
 			// TODO Compléter ...
+			drawingModel.setMemento(history.undo());
+			//drawingModel.removeLastFigure();
+			//history.undo();
 		}
 	}
 
@@ -824,6 +861,7 @@ public class EditorFrame extends JFrame
 		public void actionPerformed(ActionEvent e)
 		{
 			// TODO Compléter ...
+			drawingModel.setMemento(history.redo());
 		}
 	}
 
@@ -862,6 +900,7 @@ public class EditorFrame extends JFrame
 			 * Effacer toutes les figures du dessin
 			 */
 			// TODO Compléter ...
+			drawingModel.clear();
 		}
 	}
 
@@ -980,7 +1019,11 @@ public class EditorFrame extends JFrame
 			 * TODO Parcourir tous les "buttons" pour s'assurer qu'ils sont
 			 * bien dans l'état voulu
 			 */
-
+			Iterator<AbstractButton> it= buttons.iterator();
+			if(it.hasNext())
+			{
+				AbstractButton courant=it.next();
+				courant.setSelected(selected);
 			/*
 			 * TODO
 			 * Si on est en mode :
@@ -995,6 +1038,25 @@ public class EditorFrame extends JFrame
 			 * 		- changer l'échelle des figures
 			 *
 			 */
+			if (!selected) {
+				operationMode=OperationMode.CREATION;
+				drawingPanel.addFigureListener(creationListener);
+				drawingPanel.removeFigureListener(moveListener);
+				drawingPanel.removeFigureListener(rotateListener);
+				drawingPanel.removeFigureListener(scaleListener);
+			}
+			else {
+				operationMode=OperationMode.TRANSFORMATION;
+				drawingPanel.removeFigureListener(creationListener);
+				drawingPanel.addFigureListener(selectionListener);
+				drawingPanel.addFigureListener(moveListener);
+				drawingPanel.addFigureListener(rotateListener);
+				drawingPanel.addFigureListener(scaleListener);
+			}
+				
+			
+			
+			}
 		}
 	}
 
@@ -1034,6 +1096,7 @@ public class EditorFrame extends JFrame
 			boolean selected = button.getModel().isSelected();
 
 			// TODO Compléter ...
+			
 		}
 	}
 

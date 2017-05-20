@@ -94,6 +94,17 @@ public class HistoryManager<E extends Prototype<E>>
 			 * 	on enlève le premier memento de manière à a garder au maximum
 			 * 	#size mementos dans la pile
 			 */
+			if(undoStack.size()<size)
+			{
+				undoStack.push(state);
+				return true;
+			}
+			else
+			{
+				undoStack.removeFirst();
+				undoStack.push(state);
+				return true;
+			}
 		}
 		else
 		{
@@ -114,7 +125,7 @@ public class HistoryManager<E extends Prototype<E>>
 		/*
 		 * TODO dépiler le dernier memento empilé
 		 */
-
+		state=undoStack.pop();
 		return state;
 	}
 
@@ -139,6 +150,17 @@ public class HistoryManager<E extends Prototype<E>>
 			 * 	on enlève le premier memento de manière à a garder au maximum
 			 * 	#size mementos dans la pile
 			 */
+			if(redoStack.size()<size)
+			{
+				redoStack.push(state);
+				return true;
+			}
+			else
+			{
+				redoStack.removeFirst();
+				redoStack.push(state);
+				return true;
+			}
 		}
 		else
 		{
@@ -159,7 +181,7 @@ public class HistoryManager<E extends Prototype<E>>
 		/*
 		 * TODO dépiler le dernier memento empilé
 		 */
-
+		state=redoStack.pop();
 		return state;
 	}
 
@@ -175,6 +197,10 @@ public class HistoryManager<E extends Prototype<E>>
 		 * 	- Empiler ce memento dans la pile des undo
 		 * 	- Effacer la pile des redo
 		 */
+		 Memento<E> res=originator.createMemento();
+		 pushUndo(res);
+		 redoStack.clear();
+		 
 	}
 
 	/**
@@ -192,8 +218,14 @@ public class HistoryManager<E extends Prototype<E>>
 		 * 	- Tout en sauvegardant l'état courant de l'originator dans la pile
 		 * 	des redo.
 		 */
-
-		return null;
+		if(originator!=null)
+		{
+			pushRedo(originator.createMemento());
+			return popUndo();
+		}
+		
+			return null;
+		
 	}
 
 	/**
@@ -205,6 +237,8 @@ public class HistoryManager<E extends Prototype<E>>
 		/*
 		 * TODO Annuler le dernier empilage dans la pile des undo
 		 */
+		popUndo();
+		  
 	}
 
 	/**
@@ -222,9 +256,14 @@ public class HistoryManager<E extends Prototype<E>>
 		 * 	- Tout en sauvegardant l'état courant de l'originator dans la pile
 		 * 	des undo
 		 */
-		return null;
+		if(originator!=null)
+		{
+			pushUndo(originator.createMemento());
+			return popRedo();
+		}
+		
+			return null;
 	}
-
 	@Override
 	public String toString()
 	{

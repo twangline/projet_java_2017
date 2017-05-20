@@ -35,8 +35,8 @@ public class RectangularShapeCreationListener extends AbstractCreationListener
 	{
 		super(model, history, tipLabel, 2);
 
-		tips[0] = new String("Cliquez et maintenez enfoncé pour initier la figure");
-		tips[1] = new String("Relâchez pour terminer la figure");
+		tips[0] = new String("Cliquez et maintenez enfoncé pour initier le rectangle");
+		tips[1] = new String("Relâchez pour terminer le rectangle");
 
 		updateTip();
 

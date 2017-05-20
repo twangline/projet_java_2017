@@ -233,7 +233,8 @@ public class Drawing extends Observable implements Originator<Figure>
 		/*
 		 * TODO Il faut regénérer le stroke
 		 */
-		stroke=StrokeFactory.getStroke(null, edgeWidth);
+		stroke=StrokeFactory.getStroke(edgeType, edgeWidth);
+		
 	}
 
 	/**
@@ -246,8 +247,12 @@ public class Drawing extends Observable implements Originator<Figure>
 		/*
 		 * TODO Il faut regénérer le stroke
 		 */
-
+		stroke =StrokeFactory.getStroke(edgeType, edgeWidth);
 	}
+
+
+
+	
 
 	/**
 	 * Initialisation d'une figure de type {@link #type} au point p et ajout de
@@ -272,7 +277,7 @@ public class Drawing extends Observable implements Originator<Figure>
 		Figure newFigure = type.getFigure(stroke, edgePaint, fillPaint, p); // TODO remplacer par type.getType(...)
 
 		/*
-		 * TODO Ajout de la figure à #figures
+		 * Ajout de la figure à #figures
 		 */
 		if(newFigure !=null)
 		{
@@ -292,7 +297,7 @@ public class Drawing extends Observable implements Originator<Figure>
 	 */
 	public Figure getLastFigure()
 	{
-		// TODO Remplacer par l'implémentation ...
+		// Remplacer par l'implémentation ...
 		return figures.lastElement();
 		
 	}
@@ -316,7 +321,7 @@ public class Drawing extends Observable implements Originator<Figure>
 			}
 		}
 		/*
-		 * TODO Recherche dans le flux des figures de la DERNIERE figure
+		 *  Recherche dans le flux des figures de la DERNIERE figure
 		 * contenant le point p.
 		 */
 
@@ -329,7 +334,7 @@ public class Drawing extends Observable implements Originator<Figure>
 	 */
 	public void removeLastFigure()
 	{
-		// TODO Compléter ...
+		//  Compléter ...
 		if(!figures.isEmpty())
 		{
 			figures.remove(figures.size()-1);
@@ -344,7 +349,7 @@ public class Drawing extends Observable implements Originator<Figure>
 	 */
 	public void clear()
 	{
-		// TODO Compléter ...
+		//  Compléter ...
 		figures.clear();
 		update();
 	}
@@ -454,7 +459,7 @@ public class Drawing extends Observable implements Originator<Figure>
 	 */
 	public void clearSelection()
 	{
-		// TODO Compléter ...
+		//  Compléter ...
 		Iterator<Figure> it = figures.iterator();
 		while (it.hasNext()) {
 			it.next().setSelected(false);
@@ -563,6 +568,8 @@ public class Drawing extends Observable implements Originator<Figure>
 		}
 		figures.clear();
 		figures=res;
+
+
 
 		// Mise à jour des index des figures sélectionnées & notif observers
 		updateSelection();
