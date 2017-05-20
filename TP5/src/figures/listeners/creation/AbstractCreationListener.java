@@ -8,8 +8,9 @@ import java.awt.geom.Point2D;
 import javax.swing.JLabel;
 
 import figures.Drawing;
-import figures.Drawing.Status;
+import figures.Figure;
 import figures.listeners.AbstractFigureListener;
+import history.HistoryManager;
 
 /**
  * Listener (incomplet) des évènements souris pour créer une figure. Chaque
@@ -26,14 +27,16 @@ public abstract class AbstractCreationListener extends AbstractFigureListener
 	/**
 	 * Constructeur protégé (destiné à être utilisé par les classes filles)
 	 * @param model le modèle de dessin à modifier par ce creationListener
+	 * @param history le gestionnaire d'historique pour les Undo/Redo
 	 * @param infoLabel le label dans lequel afficher les conseils d'utilisation
 	 * @param nbSteps le nombres d'étapes de création de la figure
 	 */
 	protected AbstractCreationListener(Drawing model,
+	                                   HistoryManager<Figure> history,
 	                                   JLabel infoLabel,
 	                                   int nbSteps)
 	{
-		super(model, infoLabel, nbSteps);
+		super(model, history, infoLabel, nbSteps);
 	}
 
 	/**
@@ -52,12 +55,12 @@ public abstract class AbstractCreationListener extends AbstractFigureListener
 	@Override
 	public void startAction(MouseEvent e)
 	{
+		history.record();
 		setStartPoint(e);
 		currentFigure = drawingModel.initiateFigure(e.getPoint());
 
 		nextStep();
 
-		drawingModel.setStatus(Status.ADDED);
 		drawingModel.update();
 	}
 
@@ -92,7 +95,12 @@ public abstract class AbstractCreationListener extends AbstractFigureListener
 			System.err.println(getClass().getSimpleName() + "::endAction : null figure");
 		}
 
-		checkZeroSizeFigure();
+		if (checkZeroSizeFigure())
+		{
+			// cancel last memento
+			history.cancel();
+		}
+
 		drawingModel.update();
 
 		updateTip();

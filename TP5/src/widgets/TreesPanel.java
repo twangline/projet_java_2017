@@ -85,15 +85,6 @@ public class TreesPanel extends JPanel
 			System.out.println("FigureTypeTreeModel not set up because "
 			    + "null drawing or null JTree");
 		}
-
-		if (model != null)
-		{
-			tree.setModel(model);
-		}
-		else
-		{
-			System.err.println(getClass().getSimpleName() + "::setTreeType : null model");
-		}
 	}
 
 	/**

@@ -10,6 +10,7 @@ import javax.swing.JLabel;
 
 import figures.Drawing;
 import figures.Figure;
+import history.HistoryManager;
 
 /**
  * Listener (incomplet) des évènements souris pour agir sur lesfigures.
@@ -29,6 +30,11 @@ public abstract class AbstractFigureListener
 	 * évènements souris.
 	 */
 	protected Drawing drawingModel;
+
+	/**
+	 * L'History manager qui gère les historiques d'Undo et de Redo
+	 */
+	protected HistoryManager<Figure> history;
 
 	/**
 	 * La figure en cours de dessin. Obtenue avec
@@ -86,14 +92,18 @@ public abstract class AbstractFigureListener
 	/**
 	 * Constructeur protégé (destiné à être utilisé par les classes filles)
 	 * @param model le modèle de dessin à modifier par ce listener
+	 * @param history le gestionnaire d'historique pour créer des sauvegardes
+	 * de l'état courant des figures avant toute modification des figures
 	 * @param infoLabel le label dans lequel afficher les conseils d'utilisation
 	 * @param nbSteps le nombres d'étapes de l'action à réaliser
 	 */
 	protected AbstractFigureListener(Drawing model,
+	                                 HistoryManager<Figure> history,
 	                                 JLabel infoLabel,
 	                                 int nbSteps)
 	{
 		drawingModel = model;
+		this.history = history;
 		currentFigure = null;
 		tipLabel = infoLabel;
 		this.nbSteps = nbSteps;
@@ -104,13 +114,19 @@ public abstract class AbstractFigureListener
 
 		if (drawingModel == null)
 		{
-			System.err.println("AbstractCreationListener caution null "
+			System.err.println("AbstractFigureListener caution null "
 			    + "drawing model");
+		}
+
+		if (history == null)
+		{
+			System.err.println("AbstractFigureListener caution null "
+				+ "history manager");
 		}
 
 		if (tipLabel == null)
 		{
-			System.err.println("AbstractCreationListener caution null "
+			System.err.println("AbstractFigureListener caution null "
 			    + "tip label");
 		}
 	}
